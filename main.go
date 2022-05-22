@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -29,6 +33,40 @@ func main() {
 		fmt.Println("No tags provided")
 		return
 	}
+
+	for _, tag := range opts.tags {
+		println(getTotalPages(tag), tag)
+	}
+
+}
+
+func getTotalPages(tag string) int {
+	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", url.QueryEscape(tag))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+
+	if err != nil {
+		return 0
+	}
+
+	totalPages := doc.Find(".paginator-page.desktop-only").Text()
+
+	if totalPages != "" {
+		totalPages = totalPages[4:]
+	}
+
+	totalAmount, err := strconv.Atoi(totalPages)
+
+	if err != nil {
+		return 0
+	}
+
+	return totalAmount
 
 }
 
