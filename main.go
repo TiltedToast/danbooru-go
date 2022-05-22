@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"net/http"
 	"net/url"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type inputOptions struct {
@@ -18,6 +19,13 @@ type inputOptions struct {
 	safe      bool
 	risky     bool
 	explicit  bool
+}
+
+type Post struct {
+	rating   string
+	id       string
+	file_ext string
+	file_url string
 }
 
 func main() {
@@ -56,6 +64,16 @@ func main() {
 	}
 
 }
+
+// func fetchPosts(args inputOptions, totalPages []int) {
+// 	posts := []Post{}
+
+// 	for _, tag := range args.tags {
+// 		for page := 1; page <= getTotalPages(tag); page++ {
+// 			posts = append(posts, getPosts(tag, page)...)
+// 		}
+// 	}
+// }
 
 func getTotalPages(tag string) int {
 	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", url.QueryEscape(tag))
