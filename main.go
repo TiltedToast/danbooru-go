@@ -7,7 +7,7 @@ import (
 )
 
 type inputOptions struct {
-	tag       []string
+	tags      []string
 	outputDir string
 	safe      bool
 	risky     bool
@@ -16,6 +16,7 @@ type inputOptions struct {
 
 func main() {
 	args := os.Args[1:]
+
 	if len(args) == 0 {
 		fmt.Println("No arguments provided")
 		return
@@ -28,6 +29,11 @@ func main() {
 
 	opts := parseArgs(args)
 	fmt.Println(opts)
+
+	if len(opts.tags) == 0 {
+		fmt.Println("No tags provided")
+		return
+	}
 
 }
 
@@ -59,14 +65,23 @@ func parseArgs(args []string) inputOptions {
 	opts := inputOptions{}
 
 	opts.outputDir = "output"
+	opts.explicit = false
+	opts.risky = false
+	opts.safe = false
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "-o", "--output":
-			opts.outputDir = args[i+1]
+			if len(args) > i+1 {
+				opts.outputDir = args[i+1]
+			}
 			i++
 		case "-t", "--tag":
-			opts.tag = strings.Split(args[i+1], ",")
+			if len(args) > i+1 {
+				opts.tags = strings.Split(args[i+1], ",")
+			} else {
+				opts.tags = []string{}
+			}
 			i++
 		case "-r", "--risky":
 			opts.risky = true
