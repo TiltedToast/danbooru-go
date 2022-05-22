@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type inputOptions struct {
@@ -34,8 +36,23 @@ func main() {
 		return
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(opts.tags))
+
 	for _, tag := range opts.tags {
-		println(getTotalPages(tag), tag)
+		go func(currentTag string) {
+			defer wg.Done()
+			fmt.Println(currentTag, ":", getTotalPages(currentTag))
+		}(tag)
+	}
+	wg.Wait()
+
+	newpath := filepath.Join(".", opts.outputDir)
+	err := os.MkdirAll(newpath, os.ModePerm)
+
+	if err != nil {
+		fmt.Println("Error creating directory, exiting")
+		return
 	}
 
 }
