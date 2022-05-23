@@ -81,7 +81,6 @@ func main() {
 	}
 
 	opts := parseArgs(args)
-	fmt.Println(opts)
 
 	if opts.tag == "" {
 		fmt.Println("No tags provided")
@@ -102,7 +101,9 @@ func main() {
 	dl_bar := progressbar.NewOptions(len(posts),
 		progressbar.OptionSetDescription(fmt.Sprintf("Downloading posts")),
 		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionSetWidth(50),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetPredictTime(false),
 		progressbar.OptionSetTheme(progressbar.Theme{
 			Saucer:        "[cyan]#[reset]",
 			SaucerHead:    "[cyan]=[reset]",
@@ -186,7 +187,9 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 	pages_bar := progressbar.NewOptions(totalPageAmount,
 		progressbar.OptionSetDescription(fmt.Sprintf("Fetching posts")),
 		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionSetWidth(50),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetPredictTime(false),
 		progressbar.OptionSetTheme(progressbar.Theme{
 			Saucer:        "[cyan]#[reset]",
 			SaucerHead:    "[cyan]=[reset]",
