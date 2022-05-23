@@ -91,7 +91,7 @@ func main() {
 	posts := []Post{}
 
 	totalPages := getTotalPages(opts.tag)
-	posts = append(posts, fetchPosts(opts.tag, totalPages)...)
+	posts = append(posts, fetchPostsFromPage(opts.tag, totalPages)...)
 
 	newpath := filepath.Join(".", opts.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
@@ -100,8 +100,6 @@ func main() {
 		fmt.Println("Error creating directory, exiting")
 		return
 	}
-
-	start := time.Now()
 
 	dl_bar := progressbar.NewOptions(len(posts),
 		progressbar.OptionSetDescription(fmt.Sprintf("Downloading posts")),
@@ -117,6 +115,7 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(posts))
+	start := time.Now()
 
 	for _, post := range posts {
 		go func(post Post) {
@@ -133,9 +132,6 @@ func main() {
 
 func downloadPost(post Post, ops inputOptions) {
 	url := post.FileURL
-	// if post.HasLarge {
-	// 	url = post.LargeFileURL
-	// }
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -179,15 +175,6 @@ func downloadPost(post Post, ops inputOptions) {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
-
-}
-
-func fetchPosts(tag string, totalPages int) []Post {
-	posts := []Post{}
-
-	posts = append(posts, fetchPostsFromPage(tag, totalPages)...)
-
-	return posts
 
 }
 
