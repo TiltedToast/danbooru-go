@@ -121,7 +121,7 @@ func main() {
 	for _, post := range posts {
 		go func(post Post) {
 			defer wg.Done()
-			downloadPost(post, opts.outputDir)
+			downloadPost(post, opts)
 			dl_bar.Add(1)
 		}(post)
 	}
@@ -131,11 +131,11 @@ func main() {
 
 }
 
-func downloadPost(post Post, outputDir string) {
+func downloadPost(post Post, ops inputOptions) {
 	url := post.FileURL
-	if post.HasLarge {
-		url = post.LargeFileURL
-	}
+	// if post.HasLarge {
+	// 	url = post.LargeFileURL
+	// }
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -162,19 +162,24 @@ func downloadPost(post Post, outputDir string) {
 		subfolder = "/unknown"
 	}
 
-	if _, err := os.Stat(fmt.Sprint("./" + outputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(outputDir, subfolder)
+	if _, err := os.Stat(fmt.Sprint("./" + ops.outputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(ops.outputDir, subfolder)
 		os.MkdirAll(newpath, os.ModePerm)
 	}
 
 	filename := strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(outputDir+subfolder), filename)
+	filename = filepath.Join(fmt.Sprint(ops.outputDir+subfolder), filename)
+
+	if _, err := os.Stat(filename); err == nil {
+		return
+	}
 
 	err = ioutil.WriteFile(filename, body, 0644)
 	if err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
+
 }
 
 func fetchPosts(tag string, totalPages int) []Post {
