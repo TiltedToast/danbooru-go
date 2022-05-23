@@ -1,4 +1,4 @@
-module danbooru-dl
+module danbooru-go
 
 go 1.18
 
