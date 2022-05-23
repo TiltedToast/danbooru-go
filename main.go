@@ -12,13 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
 type inputOptions struct {
-	tags      []string
+	tag       string
 	outputDir string
 	safe      bool
 	risky     bool
@@ -75,7 +74,6 @@ type Post struct {
 
 func main() {
 	args := os.Args[1:]
-	rl := ratelimit.New(10)
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
 		printHelpMessage()
@@ -85,40 +83,15 @@ func main() {
 	opts := parseArgs(args)
 	fmt.Println(opts)
 
-	if len(opts.tags) == 0 {
+	if opts.tag == "" {
 		fmt.Println("No tags provided")
 		return
 	}
 
 	posts := []Post{}
-	totalPages := []int{}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(opts.tags))
-
-	for _, tag := range opts.tags {
-		go func(tag string) {
-			defer wg.Done()
-			rl.Take()
-			fmt.Println("Fetching Pages for tag:", tag)
-			totalPages = append(totalPages, getTotalPages(tag))
-		}(tag)
-	}
-	wg.Wait()
-
-	wg2 := sync.WaitGroup{}
-	wg2.Add(len(opts.tags))
-
-	for _, tag := range opts.tags {
-		go func(tag string) {
-			defer wg2.Done()
-			rl.Take()
-			fmt.Println("Fetching posts for tag:", tag)
-			tagPosts := fetchPosts(tag, totalPages)
-			posts = append(posts, tagPosts...)
-		}(tag)
-	}
-	wg2.Wait()
+	totalPages := getTotalPages(opts.tag)
+	posts = append(posts, fetchPosts(opts.tag, totalPages)...)
 
 	newpath := filepath.Join(".", opts.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
@@ -128,25 +101,33 @@ func main() {
 		return
 	}
 
-	fmt.Println(len(posts))
-
-	wg3 := sync.WaitGroup{}
-	wg3.Add(len(posts))
-	// rl2 := ratelimit.New(150)
-
 	start := time.Now()
+
+	dl_bar := progressbar.NewOptions(len(posts),
+		progressbar.OptionSetDescription(fmt.Sprintf("Downloading posts")),
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionSetWidth(50),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[cyan]#[reset]",
+			SaucerHead:    "[cyan]=[reset]",
+			SaucerPadding: " ",
+			BarStart:      "|",
+			BarEnd:        "|",
+		}))
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(posts))
 
 	for _, post := range posts {
 		go func(post Post) {
-			defer wg3.Done()
-			// rl2.Take()
-			fmt.Println("Downloading post:", post.ID)
+			defer wg.Done()
 			downloadPost(post, opts.outputDir)
+			dl_bar.Add(1)
 		}(post)
 	}
-	wg3.Wait()
+	wg.Wait()
 
-	fmt.Println("Time taken:", time.Since(start))
+	fmt.Println("\nTime taken:", time.Since(start))
 
 }
 
@@ -169,8 +150,25 @@ func downloadPost(post Post, outputDir string) {
 		return
 	}
 
+	subfolder := "/"
+
+	if post.Rating == "s" {
+		subfolder = "/safe"
+	} else if post.Rating == "q" {
+		subfolder = "/risky"
+	} else if post.Rating == "e" {
+		subfolder = "/explicit"
+	} else {
+		subfolder = "/unknown"
+	}
+
+	if _, err := os.Stat(fmt.Sprint("./" + outputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(outputDir, subfolder)
+		os.MkdirAll(newpath, os.ModePerm)
+	}
+
 	filename := strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(outputDir, filename)
+	filename = filepath.Join(fmt.Sprint(outputDir+subfolder), filename)
 
 	err = ioutil.WriteFile(filename, body, 0644)
 	if err != nil {
@@ -179,33 +177,38 @@ func downloadPost(post Post, outputDir string) {
 	}
 }
 
-func fetchPosts(tag string, totalPages []int) []Post {
+func fetchPosts(tag string, totalPages int) []Post {
 	posts := []Post{}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(totalPages))
-	for _, currentPage := range totalPages {
-		go func(currPage int) {
-			defer wg.Done()
-			posts = append(posts, fetchPostsFromPage(tag, currPage)...)
-		}(currentPage)
-	}
-	wg.Wait()
+	posts = append(posts, fetchPostsFromPage(tag, totalPages)...)
+
 	return posts
+
 }
 
 func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 	posts := []Post{}
 
-	rl := ratelimit.New(10)
 	wg := sync.WaitGroup{}
 	wg.Add(totalPageAmount)
+	rl := ratelimit.New(10)
+
+	pages_bar := progressbar.NewOptions(totalPageAmount,
+		progressbar.OptionSetDescription(fmt.Sprintf("Fetching posts")),
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionSetWidth(50),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[cyan]#[reset]",
+			SaucerHead:    "[cyan]=[reset]",
+			SaucerPadding: " ",
+			BarStart:      "|",
+			BarEnd:        "|",
+		}))
 
 	for i := 1; i <= totalPageAmount; i++ {
 		go func(currentPage int) {
-			rl.Take()
-			fmt.Println("Fetching page:", currentPage)
 			defer wg.Done()
+			rl.Take()
 			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, url.QueryEscape(tag))
 
 			response, err := http.Get(url)
@@ -227,6 +230,7 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 			}
 
 			posts = append(posts, result...)
+			pages_bar.Add(1)
 		}(i)
 	}
 	wg.Wait()
@@ -276,12 +280,12 @@ func contains(s []string, e string) bool {
 
 func printHelpMessage() {
 	fmt.Println("Usage:")
-	fmt.Println("  danbooru-dl [options] <tags>")
+	fmt.Println("  danbooru-dl [options] <tag>")
 	fmt.Println("")
 	fmt.Println("Options:")
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
-	fmt.Println("  -t, --tag        the specific tag(s) you want to download, separated by commas")
+	fmt.Println("  -t, --tag        the specific tag you want to download")
 	fmt.Println("  -s, --safe       add this flag for safe images")
 	fmt.Println("  -r, --risky      add this flag for suggestive images")
 	fmt.Println("  -e, --explicit   add this flag for clearly 18+ images")
@@ -296,7 +300,7 @@ func parseArgs(args []string) inputOptions {
 	opts.explicit = false
 	opts.risky = false
 	opts.safe = false
-	opts.tags = []string{}
+	opts.tag = ""
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -306,7 +310,7 @@ func parseArgs(args []string) inputOptions {
 			}
 		case "-t", "--tag":
 			if len(args) > i+1 {
-				opts.tags = strings.Split(args[i+1], ",")
+				opts.tag = args[i+1]
 			}
 		case "-r", "--risky":
 			opts.risky = true
