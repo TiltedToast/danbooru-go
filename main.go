@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/schollz/progressbar/v3"
+	"go.uber.org/ratelimit"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type inputOptions struct {
@@ -72,6 +75,7 @@ type Post struct {
 
 func main() {
 	args := os.Args[1:]
+	rl := ratelimit.New(10)
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
 		printHelpMessage()
@@ -86,17 +90,18 @@ func main() {
 		return
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(opts.tags))
-
 	posts := []Post{}
 	totalPages := []int{}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(opts.tags))
 
 	for _, tag := range opts.tags {
 		go func(tag string) {
 			defer wg.Done()
-			tagPosts := fetchPosts(tag, totalPages)
-			posts = append(posts, tagPosts...)
+			rl.Take()
+			fmt.Println("Fetching Pages for tag:", tag)
+			totalPages = append(totalPages, getTotalPages(tag))
 		}(tag)
 	}
 	wg.Wait()
@@ -105,9 +110,12 @@ func main() {
 	wg2.Add(len(opts.tags))
 
 	for _, tag := range opts.tags {
-		go func(currentTag string) {
+		go func(tag string) {
 			defer wg2.Done()
-			posts = append(posts, fetchPosts(currentTag, totalPages)...)
+			rl.Take()
+			fmt.Println("Fetching posts for tag:", tag)
+			tagPosts := fetchPosts(tag, totalPages)
+			posts = append(posts, tagPosts...)
 		}(tag)
 	}
 	wg2.Wait()
@@ -122,6 +130,53 @@ func main() {
 
 	fmt.Println(len(posts))
 
+	wg3 := sync.WaitGroup{}
+	wg3.Add(len(posts))
+	// rl2 := ratelimit.New(150)
+
+	start := time.Now()
+
+	for _, post := range posts {
+		go func(post Post) {
+			defer wg3.Done()
+			// rl2.Take()
+			fmt.Println("Downloading post:", post.ID)
+			downloadPost(post, opts.outputDir)
+		}(post)
+	}
+	wg3.Wait()
+
+	fmt.Println("Time taken:", time.Since(start))
+
+}
+
+func downloadPost(post Post, outputDir string) {
+	url := post.FileURL
+	if post.HasLarge {
+		url = post.LargeFileURL
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading post:", post.ID)
+		return
+	}
+
+	filename := strconv.Itoa(post.ID) + "." + post.FileExt
+	filename = filepath.Join(outputDir, filename)
+
+	err = ioutil.WriteFile(filename, body, 0644)
+	if err != nil {
+		fmt.Println("Error writing post:", post.ID)
+		return
+	}
 }
 
 func fetchPosts(tag string, totalPages []int) []Post {
@@ -142,17 +197,20 @@ func fetchPosts(tag string, totalPages []int) []Post {
 func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 	posts := []Post{}
 
+	rl := ratelimit.New(10)
 	wg := sync.WaitGroup{}
 	wg.Add(totalPageAmount)
 
 	for i := 1; i <= totalPageAmount; i++ {
 		go func(currentPage int) {
+			rl.Take()
+			fmt.Println("Fetching page:", currentPage)
 			defer wg.Done()
 			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, url.QueryEscape(tag))
 
 			response, err := http.Get(url)
 			if err != nil {
-				return
+				fmt.Println("Error fetching posts")
 			}
 
 			defer response.Body.Close()
@@ -160,12 +218,12 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 			responseData, err := ioutil.ReadAll(response.Body)
 
 			if err != nil {
-				return
+				fmt.Println("Error reading response")
 			}
 
 			var result []Post
 			if err := json.Unmarshal(responseData, &result); err != nil {
-				return
+				fmt.Println("Error unmarshalling response")
 			}
 
 			posts = append(posts, result...)
@@ -176,8 +234,10 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 }
 
 func getTotalPages(tag string) int {
+	rl := ratelimit.New(10)
 	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", url.QueryEscape(tag))
 
+	rl.Take()
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0
