@@ -88,10 +88,8 @@ func main() {
 		return
 	}
 
-	posts := []Post{}
-
 	totalPages := getTotalPages(opts.tag)
-	posts = append(posts, fetchPostsFromPage(opts.tag, totalPages)...)
+	posts := fetchPostsFromPage(opts.tag, totalPages)
 
 	newpath := filepath.Join(".", opts.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
