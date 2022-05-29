@@ -273,17 +273,17 @@ func contains(s []string, e string) bool {
 
 func printHelpMessage() {
 	fmt.Println("Usage:")
-	fmt.Println("  danbooru-dl [options] <tag>")
+	fmt.Println("  danbooru-go [options]")
 	fmt.Println("")
 	fmt.Println("Options:")
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
-	fmt.Println("  -t, --tag        the specific tag you want to download")
+	fmt.Println("  -t, --tag        the specific tag you want to download (required)")
 	fmt.Println("  -s, --safe       add this flag for safe images")
 	fmt.Println("  -r, --risky      add this flag for suggestive images")
 	fmt.Println("  -e, --explicit   add this flag for clearly 18+ images")
 	fmt.Println("")
-	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-dl-go")
+	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
 }
 
 func parseArgs(args []string) inputOptions {
