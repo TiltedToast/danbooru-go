@@ -80,17 +80,17 @@ func main() {
 		return
 	}
 
-	opts := parseArgs(args)
+	options := parseArgs(args)
 
-	if opts.tag == "" {
+	if options.tag == "" {
 		fmt.Println("No tags provided")
 		return
 	}
 
-	totalPages := getTotalPages(opts.tag)
-	posts := fetchPostsFromPage(opts.tag, totalPages)
+	totalPages := getTotalPages(options.tag)
+	posts := fetchPostsFromPage(options.tag, totalPages)
 
-	newpath := filepath.Join(".", opts.outputDir)
+	newpath := filepath.Join(".", options.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
 
 	if err != nil {
@@ -119,7 +119,7 @@ func main() {
 	for _, post := range posts {
 		go func(post Post) {
 			defer wg.Done()
-			downloadPost(post, opts)
+			downloadPost(post, options)
 			dl_bar.Add(1)
 		}(post)
 	}
@@ -129,7 +129,7 @@ func main() {
 
 }
 
-func downloadPost(post Post, ops inputOptions) {
+func downloadPost(post Post, options inputOptions) {
 	url := post.FileURL
 
 	resp, err := http.Get(url)
@@ -157,13 +157,13 @@ func downloadPost(post Post, ops inputOptions) {
 		subfolder = "/unknown"
 	}
 
-	if _, err := os.Stat(fmt.Sprint("./" + ops.outputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(ops.outputDir, subfolder)
+	if _, err := os.Stat(fmt.Sprint("./" + options.outputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(options.outputDir, subfolder)
 		os.MkdirAll(newpath, os.ModePerm)
 	}
 
 	filename := strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(ops.outputDir+subfolder), filename)
+	filename = filepath.Join(fmt.Sprint(options.outputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
 		return
@@ -287,33 +287,33 @@ func printHelpMessage() {
 }
 
 func parseArgs(args []string) inputOptions {
-	opts := inputOptions{}
+	options := inputOptions{}
 
-	opts.outputDir = "output"
-	opts.explicit = false
-	opts.risky = false
-	opts.safe = false
-	opts.tag = ""
+	options.outputDir = "output"
+	options.explicit = false
+	options.risky = false
+	options.safe = false
+	options.tag = ""
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "-o", "--output":
 			if len(args) > i+1 {
-				opts.outputDir = args[i+1]
+				options.outputDir = args[i+1]
 			}
 		case "-t", "--tag":
 			if len(args) > i+1 {
-				opts.tag = args[i+1]
+				options.tag = args[i+1]
 			}
 		case "-r", "--risky":
-			opts.risky = true
+			options.risky = true
 		case "-e", "--explicit":
-			opts.explicit = true
+			options.explicit = true
 		case "-s", "--safe":
-			opts.safe = true
+			options.safe = true
 		}
 	}
 
-	return opts
+	return options
 
 }
