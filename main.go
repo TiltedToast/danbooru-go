@@ -160,6 +160,8 @@ func downloadPost(post Post, options inputOptions) {
 		subfolder = "/risky"
 	} else if post.Rating == "e" {
 		subfolder = "/explicit"
+	} else if post.Rating == "g" {
+		subfolder = "/general"
 	} else {
 		subfolder = "/unknown"
 	}
