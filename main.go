@@ -3,17 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/schollz/progressbar/v3"
-	"go.uber.org/ratelimit"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/schollz/progressbar/v3"
+	"go.uber.org/ratelimit"
 )
 
 type inputOptions struct {
@@ -99,7 +101,7 @@ func main() {
 	}
 
 	dl_bar := progressbar.NewOptions(len(posts),
-		progressbar.OptionSetDescription(fmt.Sprintf("Downloading posts")),
+		progressbar.OptionSetDescription("Downloading posts"),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionShowCount(),
@@ -116,11 +118,16 @@ func main() {
 	wg.Add(len(posts))
 	start := time.Now()
 
+	maxGoroutines := runtime.NumCPU()
+	guard := make(chan Post, maxGoroutines)
+
 	for _, post := range posts {
+		guard <- post
 		go func(post Post) {
 			defer wg.Done()
 			downloadPost(post, options)
 			dl_bar.Add(1)
+			<-guard
 		}(post)
 	}
 	wg.Wait()
@@ -174,7 +181,6 @@ func downloadPost(post Post, options inputOptions) {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
-
 }
 
 func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
@@ -185,7 +191,7 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 	rl := ratelimit.New(10)
 
 	pages_bar := progressbar.NewOptions(totalPageAmount,
-		progressbar.OptionSetDescription(fmt.Sprintf("Fetching posts")),
+		progressbar.OptionSetDescription("Fetching posts"),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionShowCount(),
