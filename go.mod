@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/alitto/pond v1.8.0
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
