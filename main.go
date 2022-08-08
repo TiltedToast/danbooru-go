@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 )
 
 type inputOptions struct {
-	tag       string
+	tags      []string
 	outputDir string
 	safe      bool
 	risky     bool
@@ -84,13 +85,22 @@ func main() {
 
 	options := parseArgs(args)
 
-	if options.tag == "" {
+	if len(options.tags) == 0 {
 		fmt.Println("No tags provided")
+		return
+	} else if len(options.tags) > 2 {
+		fmt.Println("Max 2 tags allowed")
 		return
 	}
 
-	totalPages := getTotalPages(options.tag)
-	posts := fetchPostsFromPage(options.tag, totalPages)
+	totalPages := getTotalPages(options.tags)
+
+	if totalPages == 0 {
+		fmt.Println("No posts found")
+		return
+	}
+
+	posts := fetchPostsFromPage(options.tags, totalPages)
 
 	newpath := filepath.Join(".", options.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
@@ -119,10 +129,10 @@ func main() {
 	start := time.Now()
 
 	maxGoroutines := runtime.NumCPU()
-	guard := make(chan Post, maxGoroutines)
+	guard := make(chan int, maxGoroutines)
 
 	for _, post := range posts {
-		guard <- post
+		guard <- 1
 		go func(post Post) {
 			defer wg.Done()
 			downloadPost(post, options)
@@ -132,7 +142,8 @@ func main() {
 	}
 	wg.Wait()
 
-	fmt.Println("\nTime taken:", time.Since(start))
+	elapsed := time.Since(start)
+	fmt.Println("\nTime taken:", elapsed.Round(time.Second))
 
 }
 
@@ -146,7 +157,7 @@ func downloadPost(post Post, options inputOptions) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading post:", post.ID)
 		return
@@ -178,14 +189,14 @@ func downloadPost(post Post, options inputOptions) {
 		return
 	}
 
-	err = ioutil.WriteFile(filename, body, 0644)
+	err = os.WriteFile(filename, body, 0644)
 	if err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
 }
 
-func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
+func fetchPostsFromPage(tags []string, totalPageAmount int) []Post {
 	posts := []Post{}
 
 	wg := sync.WaitGroup{}
@@ -210,7 +221,13 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 		go func(currentPage int) {
 			defer wg.Done()
 			rl.Take()
-			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, url.QueryEscape(tag))
+			// tagString := url.QueryEscape(strings.Join(tags, "+"))
+			tagString := ""
+			for _, tag := range tags {
+				tagString += url.QueryEscape(tag) + "+"
+			}
+
+			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
 
 			response, err := http.Get(url)
 			if err != nil {
@@ -219,7 +236,7 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 
 			defer response.Body.Close()
 
-			responseData, err := ioutil.ReadAll(response.Body)
+			responseData, err := io.ReadAll(response.Body)
 
 			if err != nil {
 				fmt.Println("Error reading response")
@@ -238,11 +255,13 @@ func fetchPostsFromPage(tag string, totalPageAmount int) []Post {
 	return posts
 }
 
-func getTotalPages(tag string) int {
-	rl := ratelimit.New(10)
-	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", url.QueryEscape(tag))
+func getTotalPages(tags []string) int {
+	tagString := ""
+	for _, tag := range tags {
+		tagString += url.QueryEscape(tag) + "+"
+	}
+	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", tagString)
 
-	rl.Take()
 	resp, err := http.Get(url)
 	if err != nil {
 		return 0
@@ -251,6 +270,12 @@ func getTotalPages(tag string) int {
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 
 	if err != nil {
+		return 0
+	}
+
+	no_posts := doc.Find("#posts > div > p").Text()
+
+	if no_posts == "No posts found." {
 		return 0
 	}
 
@@ -282,7 +307,7 @@ func printHelpMessage() {
 	fmt.Println("Options:")
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
-	fmt.Println("  -t, --tag        the specific tag you want to download (required)")
+	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"-\" or spaces (required)")
 	fmt.Println("  -s, --safe       add this flag for safe images")
 	fmt.Println("  -r, --risky      add this flag for suggestive images")
 	fmt.Println("  -e, --explicit   add this flag for clearly 18+ images")
@@ -297,7 +322,7 @@ func parseArgs(args []string) inputOptions {
 	options.explicit = false
 	options.risky = false
 	options.safe = false
-	options.tag = ""
+	options.tags = []string{}
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -307,7 +332,11 @@ func parseArgs(args []string) inputOptions {
 			}
 		case "-t", "--tag":
 			if len(args) > i+1 {
-				options.tag = args[i+1]
+				if strings.Contains(args[i+1], "-") {
+					options.tags = strings.Split(args[i+1], "-")
+				} else {
+					options.tags = strings.Split(args[i+1], " ")
+				}
 			}
 		case "-r", "--risky":
 			options.risky = true
