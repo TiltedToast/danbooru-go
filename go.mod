@@ -7,6 +7,8 @@ require (
 	go.uber.org/ratelimit v0.2.0
 )
 
+require github.com/joho/godotenv v1.4.0 // indirect
+
 require (
 	github.com/alitto/pond v1.8.0
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect

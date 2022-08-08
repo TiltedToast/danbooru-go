@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/joho/godotenv"
 	"github.com/schollz/progressbar/v3"
 	"go.uber.org/ratelimit"
 )
@@ -77,6 +78,7 @@ type Post struct {
 
 func main() {
 	args := os.Args[1:]
+	godotenv.Load()
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
 		printHelpMessage()
@@ -87,9 +89,6 @@ func main() {
 
 	if len(options.tags) == 0 {
 		fmt.Println("No tags provided")
-		return
-	} else if len(options.tags) > 2 {
-		fmt.Println("Max 2 tags allowed")
 		return
 	}
 
@@ -221,13 +220,14 @@ func fetchPostsFromPage(tags []string, totalPageAmount int) []Post {
 		go func(currentPage int) {
 			defer wg.Done()
 			rl.Take()
-			// tagString := url.QueryEscape(strings.Join(tags, "+"))
 			tagString := ""
 			for _, tag := range tags {
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
 			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
+
+			url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 
 			response, err := http.Get(url)
 			if err != nil {
@@ -261,6 +261,8 @@ func getTotalPages(tags []string) int {
 		tagString += url.QueryEscape(tag) + "+"
 	}
 	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", tagString)
+
+	url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 
 	resp, err := http.Get(url)
 	if err != nil {
