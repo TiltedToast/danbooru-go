@@ -290,6 +290,10 @@ func getTotalPages(tags []string) int {
 
 	totalPages := doc.Find(".paginator-page.desktop-only").Last().Text()
 
+	if totalPages == "" {
+		return 1
+	}
+
 	totalAmount, err := strconv.Atoi(totalPages)
 	if err != nil {
 		return 0
