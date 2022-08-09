@@ -26,6 +26,7 @@ type inputOptions struct {
 	safe      bool
 	risky     bool
 	explicit  bool
+	general   bool
 }
 
 type Post struct {
@@ -99,11 +100,10 @@ func main() {
 		return
 	}
 
-	posts := fetchPostsFromPage(options.tags, totalPages)
+	posts := fetchPostsFromPage(options.tags, totalPages, options)
 
 	newpath := filepath.Join(".", options.outputDir)
 	err := os.MkdirAll(newpath, os.ModePerm)
-
 	if err != nil {
 		fmt.Println("Error creating directory, exiting")
 		return
@@ -143,7 +143,6 @@ func main() {
 
 	elapsed := time.Since(start)
 	fmt.Println("\nTime taken:", elapsed.Round(time.Second))
-
 }
 
 func downloadPost(post Post, options inputOptions) {
@@ -164,15 +163,16 @@ func downloadPost(post Post, options inputOptions) {
 
 	subfolder := "/"
 
-	if post.Rating == "s" {
+	switch post.Rating {
+	case "s":
 		subfolder = "/safe"
-	} else if post.Rating == "q" {
+	case "q":
 		subfolder = "/risky"
-	} else if post.Rating == "e" {
+	case "e":
 		subfolder = "/explicit"
-	} else if post.Rating == "g" {
+	case "g":
 		subfolder = "/general"
-	} else {
+	default:
 		subfolder = "/unknown"
 	}
 
@@ -188,14 +188,14 @@ func downloadPost(post Post, options inputOptions) {
 		return
 	}
 
-	err = os.WriteFile(filename, body, 0644)
+	err = os.WriteFile(filename, body, 0o644)
 	if err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
 }
 
-func fetchPostsFromPage(tags []string, totalPageAmount int) []Post {
+func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions) []Post {
 	posts := []Post{}
 
 	wg := sync.WaitGroup{}
@@ -237,7 +237,6 @@ func fetchPostsFromPage(tags []string, totalPageAmount int) []Post {
 			defer response.Body.Close()
 
 			responseData, err := io.ReadAll(response.Body)
-
 			if err != nil {
 				fmt.Println("Error reading response")
 			}
@@ -247,7 +246,16 @@ func fetchPostsFromPage(tags []string, totalPageAmount int) []Post {
 				fmt.Println("Error unmarshalling response")
 			}
 
-			posts = append(posts, result...)
+			for _, post := range result {
+				if post.Rating == "s" && !options.safe ||
+					post.Rating == "q" && !options.risky ||
+					post.Rating == "e" && !options.explicit ||
+					post.Rating == "g" && !options.general {
+					continue
+				}
+				posts = append(posts, post)
+			}
+
 			pages_bar.Add(1)
 		}(i)
 	}
@@ -270,7 +278,6 @@ func getTotalPages(tags []string) int {
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
-
 	if err != nil {
 		return 0
 	}
@@ -284,13 +291,11 @@ func getTotalPages(tags []string) int {
 	totalPages := doc.Find(".paginator-page.desktop-only").Last().Text()
 
 	totalAmount, err := strconv.Atoi(totalPages)
-
 	if err != nil {
 		return 0
 	}
 
 	return totalAmount
-
 }
 
 func contains(s []string, e string) bool {
@@ -310,9 +315,10 @@ func printHelpMessage() {
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
 	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"-\" or spaces (required)")
-	fmt.Println("  -s, --safe       add this flag for safe images")
-	fmt.Println("  -r, --risky      add this flag for suggestive images")
-	fmt.Println("  -e, --explicit   add this flag for clearly 18+ images")
+	fmt.Println("  -s, --safe       add this flag for filter out safe images")
+	fmt.Println("  -g, --general    add this flag for filter out general images (everything but the other 3 categories)")
+	fmt.Println("  -r, --risky      add this flag for filter out suggestive images")
+	fmt.Println("  -e, --explicit   add this flag for filter out clearly 18+ images")
 	fmt.Println("")
 	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
 }
@@ -321,9 +327,10 @@ func parseArgs(args []string) inputOptions {
 	options := inputOptions{}
 
 	options.outputDir = "output"
-	options.explicit = false
-	options.risky = false
-	options.safe = false
+	options.explicit = true
+	options.risky = true
+	options.safe = true
+	options.general = true
 	options.tags = []string{}
 
 	for i := 0; i < len(args); i++ {
@@ -341,14 +348,15 @@ func parseArgs(args []string) inputOptions {
 				}
 			}
 		case "-r", "--risky":
-			options.risky = true
+			options.risky = false
 		case "-e", "--explicit":
-			options.explicit = true
+			options.explicit = false
 		case "-s", "--safe":
-			options.safe = true
+			options.safe = false
+		case "-g", "--general":
+			options.general = false
 		}
 	}
 
 	return options
-
 }
