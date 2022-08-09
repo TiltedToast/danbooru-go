@@ -161,7 +161,7 @@ func downloadPost(post Post, options inputOptions) {
 		return
 	}
 
-	subfolder := "/"
+	var subfolder string
 
 	switch post.Rating {
 	case "s":
