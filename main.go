@@ -328,14 +328,14 @@ func printHelpMessage() {
 }
 
 func parseArgs(args []string) inputOptions {
-	options := inputOptions{}
-
-	options.outputDir = "output"
-	options.explicit = true
-	options.risky = true
-	options.safe = true
-	options.general = true
-	options.tags = []string{}
+	options := inputOptions{
+		outputDir: "output",
+		tags:      []string{},
+		safe:      true,
+		general:   true,
+		risky:     true,
+		explicit:  true,
+	}
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
