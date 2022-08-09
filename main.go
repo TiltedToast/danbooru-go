@@ -129,7 +129,9 @@ func main() {
 
 	maxGoroutines := runtime.NumCPU()
 	guard := make(chan int, maxGoroutines)
-
+	
+	// Make sure there's not too many goroutines running at once
+	// This would cause cause extremely high CPU usage / program crashes
 	for _, post := range posts {
 		guard <- 1
 		go func(post Post) {
@@ -145,6 +147,7 @@ func main() {
 	fmt.Println("\nTime taken:", elapsed.Round(time.Second))
 }
 
+// Download a post and saves it to a subfolder based on its rating
 func downloadPost(post Post, options inputOptions) {
 	url := post.FileURL
 
@@ -176,6 +179,7 @@ func downloadPost(post Post, options inputOptions) {
 		subfolder = "/unknown"
 	}
 
+	// Create subfolder if it doesn't exist
 	if _, err := os.Stat(fmt.Sprint("./" + options.outputDir + subfolder)); os.IsNotExist(err) {
 		newpath := filepath.Join(options.outputDir, subfolder)
 		os.MkdirAll(newpath, os.ModePerm)
@@ -195,11 +199,17 @@ func downloadPost(post Post, options inputOptions) {
 	}
 }
 
+// Loops over all pages and returns a list of all posts
+//
+// Uses a Progress Bar to show the progress to the user
 func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions) []Post {
 	posts := []Post{}
 
 	wg := sync.WaitGroup{}
 	wg.Add(totalPageAmount)
+
+	// API rate limit is 10 requests per second, can go higher but will likely
+	// result in a lot of errors
 	rl := ratelimit.New(10)
 
 	pages_bar := progressbar.NewOptions(totalPageAmount,
@@ -216,6 +226,8 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 			BarEnd:        "|",
 		}))
 
+	// Loops over all pages and adds them together into a single list
+	// For them to be downloaded later
 	for i := 1; i <= totalPageAmount; i++ {
 		go func(currentPage int) {
 			defer wg.Done()
@@ -227,6 +239,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 
 			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
 
+			// Credentials to get access to extra features for Danbooru Gold users
 			url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 
 			response, err := http.Get(url)
@@ -236,16 +249,19 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 
 			defer response.Body.Close()
 
+			// Read JSON response into a byte list
 			responseData, err := io.ReadAll(response.Body)
 			if err != nil {
 				fmt.Println("Error reading response")
 			}
 
+			// Parse JSON Response into list of posts 
 			var result []Post
 			if err := json.Unmarshal(responseData, &result); err != nil {
 				fmt.Println("Error unmarshalling response")
 			}
 
+			// User can exclude ratings via CLI flags
 			for _, post := range result {
 				if post.Rating == "s" && !options.safe ||
 					post.Rating == "q" && !options.risky ||
@@ -263,6 +279,9 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 	return posts
 }
 
+// Get the total amount of pages for the given tags
+//
+// This is used to determine how many pages worth of posts to fetch
 func getTotalPages(tags []string) int {
 	tagString := ""
 	for _, tag := range tags {
@@ -270,6 +289,7 @@ func getTotalPages(tags []string) int {
 	}
 	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", tagString)
 
+	// Credentials to get access to extra features for Danbooru Gold users
 	url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 
 	resp, err := http.Get(url)
@@ -282,18 +302,21 @@ func getTotalPages(tags []string) int {
 		return 0
 	}
 
+	// Don't want the program to think there's 1 page worth of posts
+	// When there's not a single post on the page
 	no_posts := doc.Find("#posts > div > p").Text()
-
 	if no_posts == "No posts found." {
 		return 0
 	}
 
+	// Total page count at the bottom of the page as part of the pagination
 	totalPages := doc.Find(".paginator-page.desktop-only").Last().Text()
 
 	if totalPages == "" {
 		return 1
 	}
 
+	// Need to work with an int instead of a string
 	totalAmount, err := strconv.Atoi(totalPages)
 	if err != nil {
 		return 0
@@ -302,9 +325,10 @@ func getTotalPages(tags []string) int {
 	return totalAmount
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
+// Returns true if the given string is inside the slice
+func contains(slice []string, element string) bool {
+	for _, a := range slice {
+		if a == element {
 			return true
 		}
 	}
@@ -348,6 +372,8 @@ func parseArgs(args []string) inputOptions {
 				if strings.Contains(args[i+1], "-") {
 					options.tags = strings.Split(args[i+1], "-")
 				} else {
+					// When manually selecting multiple tags on the website 
+					// they are separated by spaces
 					options.tags = strings.Split(args[i+1], " ")
 				}
 			}
