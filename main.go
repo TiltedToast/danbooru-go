@@ -337,7 +337,7 @@ func parseArgs(args []string) inputOptions {
 		explicit:  true,
 	}
 
-	for i := 0; i < len(args); i++ {
+	for i := range args {
 		switch args[i] {
 		case "-o", "--output":
 			if len(args) > i+1 {
