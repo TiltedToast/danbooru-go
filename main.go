@@ -129,7 +129,7 @@ func main() {
 
 	maxGoroutines := runtime.NumCPU()
 	guard := make(chan int, maxGoroutines)
-	
+
 	// Make sure there's not too many goroutines running at once
 	// This would cause cause extremely high CPU usage / program crashes
 	for _, post := range posts {
@@ -137,7 +137,10 @@ func main() {
 		go func(post Post) {
 			defer wg.Done()
 			downloadPost(post, options)
-			dl_bar.Add(1)
+			err := dl_bar.Add(1)
+			if err != nil {
+				return
+			}
 			<-guard
 		}(post)
 	}
@@ -149,14 +152,20 @@ func main() {
 
 // Download a post and saves it to a subfolder based on its rating
 func downloadPost(post Post, options inputOptions) {
-	url := post.FileURL
+	fileURL := post.FileURL
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(fileURL)
 	if err != nil {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Error closing body")
+			return
+		}
+	}(resp.Body)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -182,10 +191,13 @@ func downloadPost(post Post, options inputOptions) {
 	// Create subfolder if it doesn't exist
 	if _, err := os.Stat(fmt.Sprint("./" + options.outputDir + subfolder)); os.IsNotExist(err) {
 		newpath := filepath.Join(options.outputDir, subfolder)
-		os.MkdirAll(newpath, os.ModePerm)
+		err := os.MkdirAll(newpath, os.ModePerm)
+		if err != nil {
+			return
+		}
 	}
 
-	filename := strconv.Itoa(post.ID) + "." + post.FileExt
+	filename := strconv.Itoa(post.Score) + "_" + strconv.Itoa(post.ID) + "." + post.FileExt
 	filename = filepath.Join(fmt.Sprint(options.outputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
@@ -237,17 +249,22 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
-			url := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
+			postsUrl := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
-			url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+			postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 
-			response, err := http.Get(url)
+			response, err := http.Get(postsUrl)
 			if err != nil {
 				fmt.Println("Error fetching posts")
 			}
 
-			defer response.Body.Close()
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					return
+				}
+			}(response.Body)
 
 			// Read JSON response into a byte list
 			responseData, err := io.ReadAll(response.Body)
@@ -255,7 +272,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				fmt.Println("Error reading response")
 			}
 
-			// Parse JSON Response into list of posts 
+			// Parse JSON Response into list of posts
 			var result []Post
 			if err := json.Unmarshal(responseData, &result); err != nil {
 				fmt.Println("Error unmarshalling response")
@@ -372,7 +389,7 @@ func parseArgs(args []string) inputOptions {
 				if strings.Contains(args[i+1], "-") {
 					options.tags = strings.Split(args[i+1], "-")
 				} else {
-					// When manually selecting multiple tags on the website 
+					// When manually selecting multiple tags on the website
 					// they are separated by spaces
 					options.tags = strings.Split(args[i+1], " ")
 				}
