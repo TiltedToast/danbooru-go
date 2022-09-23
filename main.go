@@ -249,7 +249,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
-			postsUrl := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s", currentPage, tagString)
+			postsUrl := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=1000", currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
 			postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
@@ -304,7 +304,7 @@ func getTotalPages(tags []string) int {
 	for _, tag := range tags {
 		tagString += url.QueryEscape(tag) + "+"
 	}
-	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s", tagString)
+	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=1000", tagString)
 
 	// Credentials to get access to extra features for Danbooru Gold users
 	url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
