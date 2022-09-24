@@ -23,58 +23,18 @@ import (
 type inputOptions struct {
 	tags      []string
 	outputDir string
-	safe      bool
+	sensitive bool
 	risky     bool
 	explicit  bool
 	general   bool
 }
 
 type Post struct {
-	ID                  int         `json:"id"`
-	CreatedAt           string      `json:"created_at"`
-	UploaderID          int         `json:"uploader_id"`
-	Score               int         `json:"score"`
-	Source              string      `json:"source"`
-	Md5                 string      `json:"md5"`
-	LastCommentBumpedAt interface{} `json:"last_comment_bumped_at"`
-	Rating              string      `json:"rating"`
-	ImageWidth          int         `json:"image_width"`
-	ImageHeight         int         `json:"image_height"`
-	TagString           string      `json:"tag_string"`
-	FavCount            int         `json:"fav_count"`
-	FileExt             string      `json:"file_ext"`
-	LastNotedAt         string      `json:"last_noted_at"`
-	ParentID            interface{} `json:"parent_id"`
-	HasChildren         bool        `json:"has_children"`
-	ApproverID          int         `json:"approver_id"`
-	TagCountGeneral     int         `json:"tag_count_general"`
-	TagCountArtist      int         `json:"tag_count_artist"`
-	TagCountCharacter   int         `json:"tag_count_character"`
-	TagCountCopyright   int         `json:"tag_count_copyright"`
-	FileSize            int         `json:"file_size"`
-	UpScore             int         `json:"up_score"`
-	DownScore           int         `json:"down_score"`
-	IsPending           bool        `json:"is_pending"`
-	IsFlagged           bool        `json:"is_flagged"`
-	IsDeleted           bool        `json:"is_deleted"`
-	TagCount            int         `json:"tag_count"`
-	UpdatedAt           string      `json:"updated_at"`
-	IsBanned            bool        `json:"is_banned"`
-	PixivID             int         `json:"pixiv_id"`
-	LastCommentedAt     interface{} `json:"last_commented_at"`
-	HasActiveChildren   bool        `json:"has_active_children"`
-	BitFlags            int         `json:"bit_flags"`
-	TagCountMeta        int         `json:"tag_count_meta"`
-	HasLarge            bool        `json:"has_large"`
-	HasVisibleChildren  bool        `json:"has_visible_children"`
-	TagStringGeneral    string      `json:"tag_string_general"`
-	TagStringCharacter  string      `json:"tag_string_character"`
-	TagStringCopyright  string      `json:"tag_string_copyright"`
-	TagStringArtist     string      `json:"tag_string_artist"`
-	TagStringMeta       string      `json:"tag_string_meta"`
-	FileURL             string      `json:"file_url"`
-	LargeFileURL        string      `json:"large_file_url"`
-	PreviewFileURL      string      `json:"preview_file_url"`
+	ID      int    `json:"id"`
+	Score   int    `json:"score"`
+	Rating  string `json:"rating"`
+	FileExt string `json:"file_ext"`
+	FileURL string `json:"file_url"`
 }
 
 func main() {
@@ -177,7 +137,7 @@ func downloadPost(post Post, options inputOptions) {
 
 	switch post.Rating {
 	case "s":
-		subfolder = "/safe"
+		subfolder = "/sensitive"
 	case "q":
 		subfolder = "/risky"
 	case "e":
@@ -249,7 +209,9 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
-			postsUrl := fmt.Sprintf("https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=1000", currentPage, tagString)
+			postsUrl := fmt.Sprintf(
+				"https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=200&only=rating,file_url,id,score,file_ext",
+				currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
 			postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
@@ -275,12 +237,12 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 			// Parse JSON Response into list of posts
 			var result []Post
 			if err := json.Unmarshal(responseData, &result); err != nil {
-				fmt.Println("Error unmarshalling response")
+				fmt.Println("Error reading response,", response.Status)
 			}
 
 			// User can exclude ratings via CLI flags
 			for _, post := range result {
-				if post.Rating == "s" && !options.safe ||
+				if post.Rating == "s" && !options.sensitive ||
 					post.Rating == "q" && !options.risky ||
 					post.Rating == "e" && !options.explicit ||
 					post.Rating == "g" && !options.general {
@@ -304,7 +266,7 @@ func getTotalPages(tags []string) int {
 	for _, tag := range tags {
 		tagString += url.QueryEscape(tag) + "+"
 	}
-	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=1000", tagString)
+	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
 
 	// Credentials to get access to extra features for Danbooru Gold users
 	url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
@@ -360,7 +322,7 @@ func printHelpMessage() {
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
 	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"-\" or spaces (required)")
-	fmt.Println("  -s, --safe       add this flag for filter out safe images")
+	fmt.Println("  -s, --sensitive  add this flag for filter out sensitive images")
 	fmt.Println("  -g, --general    add this flag for filter out general images (everything but the other 3 categories)")
 	fmt.Println("  -r, --risky      add this flag for filter out suggestive images")
 	fmt.Println("  -e, --explicit   add this flag for filter out clearly 18+ images")
@@ -372,7 +334,7 @@ func parseArgs(args []string) inputOptions {
 	options := inputOptions{
 		outputDir: "output",
 		tags:      []string{},
-		safe:      true,
+		sensitive: true,
 		general:   true,
 		risky:     true,
 		explicit:  true,
@@ -398,8 +360,8 @@ func parseArgs(args []string) inputOptions {
 			options.risky = false
 		case "-e", "--explicit":
 			options.explicit = false
-		case "-s", "--safe":
-			options.safe = false
+		case "-s", "--sensitive":
+			options.sensitive = false
 		case "-g", "--general":
 			options.general = false
 		}
