@@ -321,7 +321,7 @@ func printHelpMessage() {
 	fmt.Println("Options:")
 	fmt.Println("  -h, --help       print this help message and exit")
 	fmt.Println("  -o, --output     output directory, defaults to 'output' subdirectory")
-	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"-\" or spaces (required)")
+	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"+\" or spaces (required)")
 	fmt.Println("  -s, --sensitive  add this flag for filter out sensitive images")
 	fmt.Println("  -g, --general    add this flag for filter out general images (everything but the other 3 categories)")
 	fmt.Println("  -r, --risky      add this flag for filter out suggestive images")
@@ -348,8 +348,8 @@ func parseArgs(args []string) inputOptions {
 			}
 		case "-t", "--tag":
 			if len(args) > i+1 {
-				if strings.Contains(args[i+1], "-") {
-					options.tags = strings.Split(args[i+1], "-")
+				if strings.Contains(args[i+1], "+") {
+					options.tags = strings.Split(args[i+1], "+")
 				} else {
 					// When manually selecting multiple tags on the website
 					// they are separated by spaces
