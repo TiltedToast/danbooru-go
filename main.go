@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/joho/godotenv"
@@ -74,7 +73,8 @@ func main() {
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionSetPredictTime(true),
+		progressbar.OptionShowElapsedTimeOnFinish(),
 		progressbar.OptionSetTheme(progressbar.Theme{
 			Saucer:        "[cyan]#[reset]",
 			SaucerHead:    "[cyan]=[reset]",
@@ -85,7 +85,6 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(posts))
-	start := time.Now()
 
 	maxGoroutines := runtime.NumCPU()
 	guard := make(chan int, maxGoroutines)
@@ -105,16 +104,11 @@ func main() {
 		}(post)
 	}
 	wg.Wait()
-
-	elapsed := time.Since(start)
-	fmt.Println("\nTime taken:", elapsed.Round(time.Second))
 }
 
 // Download a post and saves it to a subfolder based on its rating
 func downloadPost(post Post, options inputOptions) {
-	fileURL := post.FileURL
-
-	resp, err := http.Get(fileURL)
+	resp, err := http.Get(post.FileURL)
 	if err != nil {
 		return
 	}
