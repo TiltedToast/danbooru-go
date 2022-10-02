@@ -20,12 +20,12 @@ import (
 )
 
 type inputOptions struct {
-	tags      []string
-	outputDir string
-	sensitive bool
-	risky     bool
-	explicit  bool
-	general   bool
+	tags         []string
+	outputDir    string
+	sensitive    bool
+	questionable bool
+	explicit     bool
+	general      bool
 }
 
 type Post struct {
@@ -133,7 +133,7 @@ func downloadPost(post Post, options inputOptions) {
 	case "s":
 		subfolder = "/sensitive"
 	case "q":
-		subfolder = "/risky"
+		subfolder = "/questionable"
 	case "e":
 		subfolder = "/explicit"
 	case "g":
@@ -237,7 +237,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 			// User can exclude ratings via CLI flags
 			for _, post := range result {
 				if post.Rating == "s" && !options.sensitive ||
-					post.Rating == "q" && !options.risky ||
+					post.Rating == "q" && !options.questionable ||
 					post.Rating == "e" && !options.explicit ||
 					post.Rating == "g" && !options.general {
 					continue
@@ -318,7 +318,7 @@ func printHelpMessage() {
 	fmt.Println("  -t, --tags       the specific tags you want to search for, split by \"+\" or spaces (required)")
 	fmt.Println("  -s, --sensitive  add this flag for filter out sensitive images")
 	fmt.Println("  -g, --general    add this flag for filter out general images (everything but the other 3 categories)")
-	fmt.Println("  -r, --risky      add this flag for filter out suggestive images")
+	fmt.Println("  -q, --questionable      add this flag for filter out suggestive images")
 	fmt.Println("  -e, --explicit   add this flag for filter out clearly 18+ images")
 	fmt.Println("")
 	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
@@ -326,12 +326,12 @@ func printHelpMessage() {
 
 func parseArgs(args []string) inputOptions {
 	options := inputOptions{
-		outputDir: "output",
-		tags:      []string{},
-		sensitive: true,
-		general:   true,
-		risky:     true,
-		explicit:  true,
+		outputDir:    "output",
+		tags:         []string{},
+		sensitive:    true,
+		general:      true,
+		questionable: true,
+		explicit:     true,
 	}
 
 	for i := range args {
@@ -350,8 +350,8 @@ func parseArgs(args []string) inputOptions {
 					options.tags = strings.Split(args[i+1], " ")
 				}
 			}
-		case "-r", "--risky":
-			options.risky = false
+		case "-q", "--questionable":
+			options.questionable = false
 		case "-e", "--explicit":
 			options.explicit = false
 		case "-s", "--sensitive":
