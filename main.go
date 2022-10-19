@@ -58,6 +58,7 @@ func main() {
 		fmt.Println("No posts found")
 		return
 	}
+	
 
 	posts := fetchPostsFromPage(options.tags, totalPages, options)
 
