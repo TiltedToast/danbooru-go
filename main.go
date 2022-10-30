@@ -38,7 +38,16 @@ type Post struct {
 
 func main() {
 	args := os.Args[1:]
-	godotenv.Load()
+
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error getting executable path")
+		return
+	}
+
+	exePath := filepath.Dir(exe)
+
+	godotenv.Load(fmt.Sprintf("%s/.env", exePath))
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
 		printHelpMessage()
@@ -62,8 +71,8 @@ func main() {
 	posts := fetchPostsFromPage(options.tags, totalPages, options)
 
 	newpath := filepath.Join(".", options.outputDir)
-	err := os.MkdirAll(newpath, os.ModePerm)
-	if err != nil {
+	mkdirErr := os.MkdirAll(newpath, os.ModePerm)
+	if mkdirErr != nil {
 		fmt.Println("Error creating directory, exiting")
 		return
 	}
@@ -208,7 +217,10 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
-			postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+
+			if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
+				postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+			}
 
 			response, err := http.Get(postsUrl)
 			if err != nil {
@@ -227,7 +239,6 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 			if err != nil {
 				fmt.Println("Error reading response")
 			}
-
 			// Parse JSON Response into list of posts
 			var result []Post
 			if err := json.Unmarshal(responseData, &result); err != nil {
@@ -263,7 +274,9 @@ func getTotalPages(tags []string) int {
 	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
 
 	// Credentials to get access to extra features for Danbooru Gold users
-	url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+	if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
+		url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+	}
 
 	resp, err := http.Get(url)
 	if err != nil {
