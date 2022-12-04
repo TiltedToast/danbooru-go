@@ -19,35 +19,23 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-type inputOptions struct {
-	tags         []string
-	outputDir    string
-	sensitive    bool
-	questionable bool
-	explicit     bool
-	general      bool
-}
-
-type Post struct {
-	ID      int    `json:"id"`
-	Score   int    `json:"score"`
-	Rating  string `json:"rating"`
-	FileExt string `json:"file_ext"`
-	FileURL string `json:"file_url"`
-}
-
 func main() {
 	args := os.Args[1:]
 
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Println("Error getting executable path")
+
 		return
 	}
 
 	exePath := filepath.Dir(exe)
 
-	godotenv.Load(fmt.Sprintf("%s/.env", exePath))
+	envErr := godotenv.Load(fmt.Sprintf("%s/.env", exePath))
+	if envErr != nil {
+		fmt.Println("Error loading .env file")
+		return
+	}
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
 		printHelpMessage()
@@ -178,16 +166,21 @@ func downloadPost(post Post, options inputOptions) {
 //
 // Uses a Progress Bar to show the progress to the user
 func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions) []Post {
-	posts := []Post{}
+	var posts []Post
 
 	wg := sync.WaitGroup{}
 	wg.Add(totalPageAmount)
 
 	// API rate limit is 10 requests per second, can go higher but will likely
 	// result in a lot of errors
-	rl := ratelimit.New(10)
+	rl_per_second := 10
 
-	pages_bar := progressbar.NewOptions(totalPageAmount,
+	if isGoldMember() {
+		rl_per_second = 20
+	}
+	rl := ratelimit.New(rl_per_second)
+
+	pagesBar := progressbar.NewOptions(totalPageAmount,
 		progressbar.OptionSetDescription("Fetching posts"),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionFullWidth(),
@@ -217,7 +210,6 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
-
 			if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
 				postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 			}
@@ -256,7 +248,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				posts = append(posts, post)
 			}
 
-			pages_bar.Add(1)
+			_ = pagesBar.Add(1)
 		}(i)
 	}
 	wg.Wait()
@@ -271,14 +263,14 @@ func getTotalPages(tags []string) int {
 	for _, tag := range tags {
 		tagString += url.QueryEscape(tag) + "+"
 	}
-	url := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
+	pageUrl := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
 
 	// Credentials to get access to extra features for Danbooru Gold users
 	if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
-		url += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+		pageUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 	}
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(pageUrl)
 	if err != nil {
 		return 0
 	}
@@ -290,8 +282,8 @@ func getTotalPages(tags []string) int {
 
 	// Don't want the program to think there's 1 page worth of posts
 	// When there's not a single post on the page
-	no_posts := doc.Find("#posts > div > p").Text()
-	if no_posts == "No posts found." {
+	noPosts := doc.Find("#posts > div > p").Text()
+	if noPosts == "No posts found." {
 		return 0
 	}
 
@@ -309,6 +301,31 @@ func getTotalPages(tags []string) int {
 	}
 
 	return totalAmount
+}
+
+func isGoldMember() bool {
+	if os.Getenv("LOGIN_NAME") == "" || os.Getenv("API_KEY") == "" {
+		return false
+	}
+	loginName := os.Getenv("LOGIN_NAME")
+	apiKey := os.Getenv("API_KEY")
+
+	userRes, err := http.Get(fmt.Sprintf("https://danbooru.donmai.us/profile.json?login=%s&api_key=%s", loginName, apiKey))
+	if err != nil {
+		return false
+	}
+
+	userResData, err := io.ReadAll(userRes.Body)
+	if err != nil {
+		return false
+	}
+
+	var userJson User
+	if err := json.Unmarshal(userResData, &userJson); err != nil {
+		return false
+	}
+
+	return userJson.LevelString != "Member"
 }
 
 // Returns true if the given string is inside the slice
