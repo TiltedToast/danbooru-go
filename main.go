@@ -16,6 +16,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/joho/godotenv"
 	"github.com/schollz/progressbar/v3"
+	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 )
 
@@ -25,7 +26,6 @@ func main() {
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Println("Error getting executable path")
-
 		return
 	}
 
@@ -56,7 +56,13 @@ func main() {
 		return
 	}
 
-	posts := fetchPostsFromPage(options.tags, totalPages, options)
+	client := fasthttp.Client{
+		NoDefaultUserAgentHeader: true,
+		MaxConnsPerHost:          1000,
+		Dial:                     fasthttp.Dial,
+	}
+
+	posts := fetchPostsFromPage(options.tags, totalPages, options, &client)
 
 	newpath := filepath.Join(".", options.outputDir)
 	mkdirErr := os.MkdirAll(newpath, os.ModePerm)
@@ -92,7 +98,7 @@ func main() {
 		guard <- 1
 		go func(post Post) {
 			defer wg.Done()
-			downloadPost(post, options)
+			downloadPost(post, options, &client)
 			err := dl_bar.Add(1)
 			if err != nil {
 				return
@@ -104,23 +110,9 @@ func main() {
 }
 
 // Download a post and saves it to a subfolder based on its rating
-func downloadPost(post Post, options inputOptions) {
-	resp, err := http.Get(post.FileURL)
+func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
+	_, body, err := client.Get(nil, post.FileURL)
 	if err != nil {
-		return
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("Error closing body")
-			return
-		}
-	}(resp.Body)
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading post:", post.ID)
 		return
 	}
 
@@ -165,7 +157,7 @@ func downloadPost(post Post, options inputOptions) {
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
-func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions) []Post {
+func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions, client *fasthttp.Client) []Post {
 	var posts []Post
 
 	wg := sync.WaitGroup{}
@@ -214,27 +206,15 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 				postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
 			}
 
-			response, err := http.Get(postsUrl)
+			statusCode, body, err := client.Get(nil, postsUrl)
 			if err != nil {
-				fmt.Println("Error fetching posts")
+				return
 			}
 
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					return
-				}
-			}(response.Body)
-
-			// Read JSON response into a byte list
-			responseData, err := io.ReadAll(response.Body)
-			if err != nil {
-				fmt.Println("Error reading response")
-			}
 			// Parse JSON Response into list of posts
 			var result []Post
-			if err := json.Unmarshal(responseData, &result); err != nil {
-				fmt.Println("Error reading response,", response.Status)
+			if err := json.Unmarshal(body, &result); err != nil {
+				fmt.Println("Error reading response,", statusCode)
 			}
 
 			// User can exclude ratings via CLI flags
