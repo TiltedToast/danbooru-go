@@ -57,7 +57,6 @@ func main() {
 	}
 
 	client := fasthttp.Client{
-		NoDefaultUserAgentHeader: true,
 		MaxConnsPerHost:          1000,
 		Dial:                     fasthttp.Dial,
 	}
