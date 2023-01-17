@@ -31,10 +31,12 @@ func main() {
 
 	exePath := filepath.Dir(exe)
 
-	envErr := godotenv.Load(fmt.Sprintf("%s/.env", exePath))
-	if envErr != nil {
-		fmt.Println("Error loading .env file")
-		return
+	if _, err := os.Stat(fmt.Sprintf("%s/.env", exePath)); err == nil {
+		envErr := godotenv.Load(fmt.Sprintf("%s/.env", exePath))
+		if envErr != nil {
+			fmt.Println("Error loading .env file")
+			return
+		}
 	}
 
 	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
@@ -57,8 +59,8 @@ func main() {
 	}
 
 	client := fasthttp.Client{
-		MaxConnsPerHost:          1000,
-		Dial:                     fasthttp.Dial,
+		MaxConnsPerHost: 1000,
+		Dial:            fasthttp.Dial,
 	}
 
 	posts := fetchPostsFromPage(options.tags, totalPages, options, &client)
