@@ -116,6 +116,7 @@ func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
 
 	if post.FileExt == "zip" && strings.Contains(post.LargeFileURL, ".webm") {
 		url = post.LargeFileURL
+		post.FileExt = "webm"
 	}
 
 	_, body, err := client.Get(nil, url)
