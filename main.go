@@ -112,7 +112,13 @@ func main() {
 
 // Download a post and saves it to a subfolder based on its rating
 func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
-	_, body, err := client.Get(nil, post.FileURL)
+	url := post.FileURL
+
+	if post.FileExt == "zip" && strings.Contains(post.LargeFileURL, ".webm") {
+		url = post.LargeFileURL
+	}
+
+	_, body, err := client.Get(nil, url)
 	if err != nil {
 		return
 	}
@@ -199,7 +205,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 			}
 
 			postsUrl := fmt.Sprintf(
-				"https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=200&only=rating,file_url,id,score,file_ext",
+				"https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=200&only=rating,file_url,id,score,file_ext,large_file_url",
 				currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
