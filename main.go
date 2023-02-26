@@ -66,8 +66,7 @@ func main() {
 	posts := fetchPostsFromPage(options.tags, totalPages, options, &client)
 
 	newpath := filepath.Join(".", options.outputDir)
-	mkdirErr := os.MkdirAll(newpath, os.ModePerm)
-	if mkdirErr != nil {
+	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 		fmt.Println("Error creating directory, exiting")
 		return
 	}
@@ -100,8 +99,7 @@ func main() {
 		go func(post Post) {
 			defer wg.Done()
 			downloadPost(post, options, &client)
-			err := dl_bar.Add(1)
-			if err != nil {
+			if err := dl_bar.Add(1); err != nil {
 				return
 			}
 			<-guard
@@ -142,8 +140,7 @@ func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
 	// Create subfolder if it doesn't exist
 	if _, err := os.Stat(fmt.Sprint("./" + options.outputDir + subfolder)); os.IsNotExist(err) {
 		newpath := filepath.Join(options.outputDir, subfolder)
-		err := os.MkdirAll(newpath, os.ModePerm)
-		if err != nil {
+		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 			return
 		}
 	}
@@ -155,8 +152,7 @@ func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
 		return
 	}
 
-	err = os.WriteFile(filename, body, 0o644)
-	if err != nil {
+	if err = os.WriteFile(filename, body, 0o644); err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
