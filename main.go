@@ -79,11 +79,11 @@ func main() {
 		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionShowElapsedTimeOnFinish(),
 		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        "[cyan]#[reset]",
-			SaucerHead:    "[cyan]=[reset]",
-			SaucerPadding: " ",
-			BarStart:      "|",
-			BarEnd:        "|",
+			Saucer:        "[cyan]█[reset]",
+			SaucerHead:    "[cyan]█[reset]",
+			SaucerPadding: "[blue]░[reset]",
+			BarStart:      "",
+			BarEnd:        "",
 		}))
 
 	wg := sync.WaitGroup{}
@@ -183,11 +183,11 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetPredictTime(false),
 		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        "[cyan]#[reset]",
-			SaucerHead:    "[cyan]=[reset]",
-			SaucerPadding: " ",
-			BarStart:      "|",
-			BarEnd:        "|",
+			Saucer:        "[cyan]█[reset]",
+			SaucerHead:    "[cyan]█[reset]",
+			SaucerPadding: "[blue]░[reset]",
+			BarStart:      "",
+			BarEnd:        "",
 		}))
 
 	// Loops over all pages and adds them together into a single list
