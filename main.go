@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -89,7 +91,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(len(posts))
 
-	maxGoroutines := runtime.NumCPU()
+	maxGoroutines := runtime.NumCPU() * 3
 	guard := make(chan int, maxGoroutines)
 
 	// Make sure there's not too many goroutines running at once
@@ -152,7 +154,14 @@ func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
 		return
 	}
 
-	if err = os.WriteFile(filename, body, 0o644); err != nil {
+	file, err := os.Create(filename)
+	if err != nil {
+		return
+	}
+
+	defer file.Close()
+	w := bufio.NewWriter(file)
+	if _, err := w.Write(body); err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
 	}
