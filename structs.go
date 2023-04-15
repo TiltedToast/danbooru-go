@@ -1,6 +1,6 @@
 package main
 
-type inputOptions struct {
+type InputOptions struct {
 	tags         []string
 	outputDir    string
 	sensitive    bool

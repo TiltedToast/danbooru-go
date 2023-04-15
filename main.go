@@ -40,19 +40,19 @@ func main() {
 		}
 	}
 
-	if contains(args, "-h") || contains(args, "--help") || len(args) == 0 {
-		printHelpMessage()
+	if Contains(args, "-h") || Contains(args, "--help") || len(args) == 0 {
+		PrintHelpMessage()
 		return
 	}
 
-	options := parseArgs(args)
+	options := ParseArgs(args)
 
 	if len(options.tags) == 0 {
 		fmt.Println("No tags provided")
 		return
 	}
 
-	totalPages := getTotalPages(options.tags)
+	totalPages := GetTotalPages(options.tags)
 
 	if totalPages == 0 {
 		fmt.Println("No posts found")
@@ -64,7 +64,7 @@ func main() {
 		Dial:            fasthttp.Dial,
 	}
 
-	posts := fetchPostsFromPage(options.tags, totalPages, options, &client)
+	posts := FetchPostsFromPage(options.tags, totalPages, options, &client)
 
 	newpath := filepath.Join(".", options.outputDir)
 	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
@@ -99,7 +99,7 @@ func main() {
 		guard <- 1
 		go func(post Post) {
 			defer wg.Done()
-			downloadPost(post, options, &client)
+			DownloadPost(post, options, &client)
 			if err := dl_bar.Add(1); err != nil {
 				return
 			}
@@ -110,7 +110,7 @@ func main() {
 }
 
 // Download a post and saves it to a subfolder based on its rating
-func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
+func DownloadPost(post Post, options InputOptions, client *fasthttp.Client) {
 	url := post.FileURL
 
 	if post.FileExt == "zip" && strings.Contains(post.LargeFileURL, ".webm") {
@@ -169,7 +169,7 @@ func downloadPost(post Post, options inputOptions, client *fasthttp.Client) {
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
-func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions, client *fasthttp.Client) []Post {
+func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions, client *fasthttp.Client) []Post {
 	var posts []Post
 
 	wg := sync.WaitGroup{}
@@ -179,7 +179,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 	// result in a lot of errors
 	rl_per_second := 10
 
-	if isGoldMember() {
+	if IsGoldMember() {
 		rl_per_second = 20
 	}
 	rl := ratelimit.New(rl_per_second)
@@ -250,7 +250,7 @@ func fetchPostsFromPage(tags []string, totalPageAmount int, options inputOptions
 // Get the total amount of pages for the given tags
 //
 // This is used to determine how many pages worth of posts to fetch
-func getTotalPages(tags []string) int {
+func GetTotalPages(tags []string) int {
 	tagString := ""
 	for _, tag := range tags {
 		tagString += url.QueryEscape(tag) + "+"
@@ -295,7 +295,7 @@ func getTotalPages(tags []string) int {
 	return totalAmount
 }
 
-func isGoldMember() bool {
+func IsGoldMember() bool {
 	if os.Getenv("LOGIN_NAME") == "" || os.Getenv("API_KEY") == "" {
 		return false
 	}
@@ -321,7 +321,7 @@ func isGoldMember() bool {
 }
 
 // Returns true if the given string is inside the slice
-func contains(slice []string, element string) bool {
+func Contains(slice []string, element string) bool {
 	for _, a := range slice {
 		if a == element {
 			return true
@@ -330,7 +330,7 @@ func contains(slice []string, element string) bool {
 	return false
 }
 
-func printHelpMessage() {
+func PrintHelpMessage() {
 	fmt.Println("Usage:")
 	fmt.Println("  danbooru-go [options]")
 	fmt.Println("")
@@ -346,8 +346,8 @@ func printHelpMessage() {
 	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
 }
 
-func parseArgs(args []string) inputOptions {
-	options := inputOptions{
+func ParseArgs(args []string) InputOptions {
+	options := InputOptions{
 		outputDir:    "output",
 		tags:         []string{},
 		sensitive:    true,
