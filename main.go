@@ -160,6 +160,7 @@ func DownloadPost(post Post, options InputOptions, client *fasthttp.Client) {
 
 	defer file.Close()
 	w := bufio.NewWriter(file)
+	defer w.Flush()
 	if _, err := w.Write(body); err != nil {
 		fmt.Println("Error writing post:", post.ID)
 		return
@@ -227,6 +228,7 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions
 			var result []Post
 			if err := json.Unmarshal(body, &result); err != nil {
 				fmt.Println("Error reading response,", statusCode)
+				return
 			}
 
 			// User can exclude ratings via CLI flags
