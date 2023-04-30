@@ -16,7 +16,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/joho/godotenv"
-	"github.com/schollz/progressbar/v3"
+	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 )
@@ -74,14 +74,14 @@ func main() {
 		return
 	}
 
-	dl_bar := progressbar.NewOptions(len(posts),
-		progressbar.OptionSetDescription("Downloading posts"),
-		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionFullWidth(),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetPredictTime(true),
-		progressbar.OptionShowElapsedTimeOnFinish(),
-		progressbar.OptionSetTheme(progressbar.Theme{
+	dl_bar := pb.NewOptions(len(posts),
+		pb.OptionSetDescription("Downloading posts"),
+		pb.OptionEnableColorCodes(true),
+		pb.OptionFullWidth(),
+		pb.OptionShowCount(),
+		pb.OptionSetPredictTime(true),
+		pb.OptionShowElapsedTimeOnFinish(),
+		pb.OptionSetTheme(pb.Theme{
 			Saucer:        "[cyan]█[reset]",
 			SaucerHead:    "[cyan]█[reset]",
 			SaucerPadding: "[blue]░[reset]",
@@ -187,13 +187,13 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions
 	}
 	rl := ratelimit.New(rl_per_second)
 
-	pagesBar := progressbar.NewOptions(totalPageAmount,
-		progressbar.OptionSetDescription("Fetching posts"),
-		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionFullWidth(),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetPredictTime(false),
-		progressbar.OptionSetTheme(progressbar.Theme{
+	pagesBar := pb.NewOptions(totalPageAmount,
+		pb.OptionSetDescription("Fetching posts"),
+		pb.OptionEnableColorCodes(true),
+		pb.OptionFullWidth(),
+		pb.OptionShowCount(),
+		pb.OptionSetPredictTime(false),
+		pb.OptionSetTheme(pb.Theme{
 			Saucer:        "[cyan]█[reset]",
 			SaucerHead:    "[cyan]█[reset]",
 			SaucerPadding: "[blue]░[reset]",
