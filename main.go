@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -19,9 +17,9 @@ import (
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
-)
 
-import . "github.com/tiltedtoast/danbooru-go/types"
+	. "github.com/tiltedtoast/danbooru-go/types"
+)
 
 func main() {
 	args := os.Args[1:]
@@ -47,7 +45,8 @@ func main() {
 		return
 	}
 
-	options := ParseArgs(args)
+	options := Args{}
+	options = options.Parse(args)
 
 	if len(options.Tags) == 0 {
 		fmt.Println("No tags provided")
@@ -101,7 +100,7 @@ func main() {
 		guard <- 1
 		go func(post Post) {
 			defer wg.Done()
-			DownloadPost(post, options, &client)
+			post.Download(options, &client)
 			if err := dl_bar.Add(1); err != nil {
 				return
 			}
@@ -111,68 +110,10 @@ func main() {
 	wg.Wait()
 }
 
-// Download a post and saves it to a subfolder based on its rating
-func DownloadPost(post Post, options InputOptions, client *fasthttp.Client) {
-	url := post.FileURL
-
-	if post.FileExt == "zip" && strings.Contains(post.LargeFileURL, ".webm") {
-		url = post.LargeFileURL
-		post.FileExt = "webm"
-	}
-
-	_, body, err := client.Get(nil, url)
-	if err != nil {
-		return
-	}
-
-	var subfolder string
-
-	switch post.Rating {
-	case "s":
-		subfolder = "/sensitive"
-	case "q":
-		subfolder = "/questionable"
-	case "e":
-		subfolder = "/explicit"
-	case "g":
-		subfolder = "/general"
-	default:
-		subfolder = "/unknown"
-	}
-
-	// Create subfolder if it doesn't exist
-	if _, err := os.Stat(fmt.Sprint("./" + options.OutputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(options.OutputDir, subfolder)
-		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
-			return
-		}
-	}
-
-	filename := strconv.Itoa(post.Score) + "_" + strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(options.OutputDir+subfolder), filename)
-
-	if _, err := os.Stat(filename); err == nil {
-		return
-	}
-
-	file, err := os.Create(filename)
-	if err != nil {
-		return
-	}
-
-	defer file.Close()
-	w := bufio.NewWriter(file)
-	defer w.Flush()
-	if _, err := w.Write(body); err != nil {
-		fmt.Println("Error writing post:", post.ID)
-		return
-	}
-}
-
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
-func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions, client *fasthttp.Client) []Post {
+func FetchPostsFromPage(tags []string, totalPageAmount int, options Args, client *fasthttp.Client) []Post {
 	var posts []Post
 
 	wg := sync.WaitGroup{}
@@ -348,44 +289,4 @@ func PrintHelpMessage() {
 	fmt.Println("  -e, --explicit      add this flag to filter out clearly 18+ images")
 	fmt.Println("")
 	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
-}
-
-func ParseArgs(args []string) InputOptions {
-	options := InputOptions{
-		OutputDir:    "output",
-		Tags:         []string{},
-		Sensitive:    true,
-		General:      true,
-		Questionable: true,
-		Explicit:     true,
-	}
-
-	for i := range args {
-		switch args[i] {
-		case "-o", "--output":
-			if len(args) > i+1 {
-				options.OutputDir = args[i+1]
-			}
-		case "-t", "--tag":
-			if len(args) > i+1 {
-				if strings.Contains(args[i+1], "+") {
-					options.Tags = strings.Split(args[i+1], "+")
-				} else {
-					// When manually selecting multiple tags on the website
-					// they are separated by spaces
-					options.Tags = strings.Split(args[i+1], " ")
-				}
-			}
-		case "-q", "--questionable":
-			options.Questionable = false
-		case "-e", "--explicit":
-			options.Explicit = false
-		case "-s", "--sensitive":
-			options.Sensitive = false
-		case "-g", "--general":
-			options.General = false
-		}
-	}
-
-	return options
 }
