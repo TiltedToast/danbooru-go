@@ -1,12 +1,12 @@
-package main
+package types
 
 type InputOptions struct {
-	tags         []string
-	outputDir    string
-	sensitive    bool
-	questionable bool
-	explicit     bool
-	general      bool
+	Tags         []string
+	OutputDir    string
+	Sensitive    bool
+	Questionable bool
+	Explicit     bool
+	General      bool
 }
 
 type Post struct {
