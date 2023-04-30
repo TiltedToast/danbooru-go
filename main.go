@@ -215,8 +215,8 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions
 				currentPage, tagString)
 
 			// Credentials to get access to extra features for Danbooru Gold users
-			if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
-				postsUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+			if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
+				postsUrl += "&login=" + os.Getenv("DANBOORU_LOGIN") + "&api_key=" + os.Getenv("DANBOORU_API_KEY")
 			}
 
 			statusCode, body, err := client.Get(nil, postsUrl)
