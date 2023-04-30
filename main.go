@@ -17,10 +17,11 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/joho/godotenv"
 	"github.com/schollz/progressbar/v3"
-	. "github.com/tiltedtoast/danbooru-go/types"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 )
+
+import . "github.com/tiltedtoast/danbooru-go/types"
 
 func main() {
 	args := os.Args[1:]
