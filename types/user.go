@@ -1,23 +1,5 @@
 package types
 
-type InputOptions struct {
-	Tags         []string
-	OutputDir    string
-	Sensitive    bool
-	Questionable bool
-	Explicit     bool
-	General      bool
-}
-
-type Post struct {
-	ID           int    `json:"id"`
-	Score        int    `json:"score"`
-	Rating       string `json:"rating"`
-	FileExt      string `json:"file_ext"`
-	FileURL      string `json:"file_url"`
-	LargeFileURL string `json:"large_file_url"`
-}
-
 type User struct {
 	LastLoggedInAt                  string `json:"last_logged_in_at"`
 	ID                              int    `json:"id"`
