@@ -1,4 +1,4 @@
-module danbooru-go
+module github.com/tiltedtoast/danbooru-go
 
 go 1.19
 

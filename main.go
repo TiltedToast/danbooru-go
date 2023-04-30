@@ -17,6 +17,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/joho/godotenv"
 	"github.com/schollz/progressbar/v3"
+	. "github.com/tiltedtoast/danbooru-go/types"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 )
@@ -47,12 +48,12 @@ func main() {
 
 	options := ParseArgs(args)
 
-	if len(options.tags) == 0 {
+	if len(options.Tags) == 0 {
 		fmt.Println("No tags provided")
 		return
 	}
 
-	totalPages := GetTotalPages(options.tags)
+	totalPages := GetTotalPages(options.Tags)
 
 	if totalPages == 0 {
 		fmt.Println("No posts found")
@@ -64,9 +65,9 @@ func main() {
 		Dial:            fasthttp.Dial,
 	}
 
-	posts := FetchPostsFromPage(options.tags, totalPages, options, &client)
+	posts := FetchPostsFromPage(options.Tags, totalPages, options, &client)
 
-	newpath := filepath.Join(".", options.outputDir)
+	newpath := filepath.Join(".", options.OutputDir)
 	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 		fmt.Println("Error creating directory, exiting")
 		return
@@ -139,15 +140,15 @@ func DownloadPost(post Post, options InputOptions, client *fasthttp.Client) {
 	}
 
 	// Create subfolder if it doesn't exist
-	if _, err := os.Stat(fmt.Sprint("./" + options.outputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(options.outputDir, subfolder)
+	if _, err := os.Stat(fmt.Sprint("./" + options.OutputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(options.OutputDir, subfolder)
 		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 			return
 		}
 	}
 
 	filename := strconv.Itoa(post.Score) + "_" + strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(options.outputDir+subfolder), filename)
+	filename = filepath.Join(fmt.Sprint(options.OutputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
 		return
@@ -233,10 +234,10 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options InputOptions
 
 			// User can exclude ratings via CLI flags
 			for _, post := range result {
-				if post.Rating == "s" && !options.sensitive ||
-					post.Rating == "q" && !options.questionable ||
-					post.Rating == "e" && !options.explicit ||
-					post.Rating == "g" && !options.general {
+				if post.Rating == "s" && !options.Sensitive ||
+					post.Rating == "q" && !options.Questionable ||
+					post.Rating == "e" && !options.Explicit ||
+					post.Rating == "g" && !options.General {
 					continue
 				}
 				posts = append(posts, post)
@@ -350,38 +351,38 @@ func PrintHelpMessage() {
 
 func ParseArgs(args []string) InputOptions {
 	options := InputOptions{
-		outputDir:    "output",
-		tags:         []string{},
-		sensitive:    true,
-		general:      true,
-		questionable: true,
-		explicit:     true,
+		OutputDir:    "output",
+		Tags:         []string{},
+		Sensitive:    true,
+		General:      true,
+		Questionable: true,
+		Explicit:     true,
 	}
 
 	for i := range args {
 		switch args[i] {
 		case "-o", "--output":
 			if len(args) > i+1 {
-				options.outputDir = args[i+1]
+				options.OutputDir = args[i+1]
 			}
 		case "-t", "--tag":
 			if len(args) > i+1 {
 				if strings.Contains(args[i+1], "+") {
-					options.tags = strings.Split(args[i+1], "+")
+					options.Tags = strings.Split(args[i+1], "+")
 				} else {
 					// When manually selecting multiple tags on the website
 					// they are separated by spaces
-					options.tags = strings.Split(args[i+1], " ")
+					options.Tags = strings.Split(args[i+1], " ")
 				}
 			}
 		case "-q", "--questionable":
-			options.questionable = false
+			options.Questionable = false
 		case "-e", "--explicit":
-			options.explicit = false
+			options.Explicit = false
 		case "-s", "--sensitive":
-			options.sensitive = false
+			options.Sensitive = false
 		case "-g", "--general":
-			options.general = false
+			options.General = false
 		}
 	}
 
