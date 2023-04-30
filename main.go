@@ -260,8 +260,8 @@ func GetTotalPages(tags []string) int {
 	pageUrl := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
 
 	// Credentials to get access to extra features for Danbooru Gold users
-	if os.Getenv("LOGIN_NAME") != "" && os.Getenv("API_KEY") != "" {
-		pageUrl += "&login=" + os.Getenv("LOGIN_NAME") + "&api_key=" + os.Getenv("API_KEY")
+	if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
+		pageUrl += "&login=" + os.Getenv("DANBOORU_LOGIN") + "&api_key=" + os.Getenv("DANBOORU_API_KEY")
 	}
 
 	resp, err := http.Get(pageUrl)
@@ -298,11 +298,11 @@ func GetTotalPages(tags []string) int {
 }
 
 func IsGoldMember() bool {
-	if os.Getenv("LOGIN_NAME") == "" || os.Getenv("API_KEY") == "" {
+	if os.Getenv("DANBOORU_LOGIN") == "" || os.Getenv("DANBOORU_API_KEY") == "" {
 		return false
 	}
-	loginName := os.Getenv("LOGIN_NAME")
-	apiKey := os.Getenv("API_KEY")
+	loginName := os.Getenv("DANBOORU_LOGIN")
+	apiKey := os.Getenv("DANBOORU_API_KEY")
 
 	userRes, err := http.Get(fmt.Sprintf("https://danbooru.donmai.us/profile.json?login=%s&api_key=%s", loginName, apiKey))
 	if err != nil {
