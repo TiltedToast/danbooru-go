@@ -11,7 +11,7 @@ type Args struct {
 	General      bool
 }
 
-func (a *Args) Parse(args []string) Args {
+func (a Args) Parse(args []string) Args {
 	options := Args{
 		OutputDir:    "output",
 		Tags:         []string{},
