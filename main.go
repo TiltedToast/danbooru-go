@@ -45,8 +45,7 @@ func main() {
 		return
 	}
 
-	options := Args{}
-	options = options.Parse(args)
+	options := Args{}.Parse(args)
 
 	if len(options.Tags) == 0 {
 		fmt.Println("No tags provided")
