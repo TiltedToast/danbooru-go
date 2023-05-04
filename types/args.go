@@ -1,6 +1,9 @@
 package types
 
-import "strings"
+import (
+	"os"
+	"strings"
+)
 
 type Args struct {
 	Tags         []string
@@ -11,7 +14,9 @@ type Args struct {
 	General      bool
 }
 
-func (a Args) Parse(args []string) Args {
+func NewArgs() Args {
+	args := os.Args[1:]
+
 	options := Args{
 		OutputDir:    "output",
 		Tags:         []string{},
