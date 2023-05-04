@@ -101,7 +101,3 @@ func RunApp() {
 	}
 	wg.Wait()
 }
-
-func NewArgs(args []string) {
-	panic("unimplemented")
-}
