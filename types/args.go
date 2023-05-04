@@ -14,6 +14,7 @@ type Args struct {
 	General      bool
 }
 
+// Parses the command line arguments and returns an Args struct
 func NewArgs() Args {
 	args := os.Args[1:]
 
