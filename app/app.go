@@ -38,7 +38,7 @@ func RunApp() {
 		return
 	}
 
-	options := Args{}.Parse(args)
+	options := NewArgs()
 
 	if len(options.Tags) == 0 {
 		fmt.Println("No tags provided")
@@ -100,4 +100,8 @@ func RunApp() {
 		}(post)
 	}
 	wg.Wait()
+}
+
+func NewArgs(args []string) {
+	panic("unimplemented")
 }
