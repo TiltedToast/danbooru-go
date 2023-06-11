@@ -20,8 +20,10 @@ type Post struct {
 	LargeFileURL string `json:"large_file_url"`
 }
 
+var OPTIONS = NewArgs()
+
 // Download a post and saves it to a subfolder based on its rating
-func (post *Post) Download(options Args, client *fasthttp.Client) {
+func (post *Post) Download(client *fasthttp.Client) {
 	url := post.FileURL
 
 	if post.FileExt == "zip" && strings.Contains(post.LargeFileURL, ".webm") {
@@ -50,15 +52,15 @@ func (post *Post) Download(options Args, client *fasthttp.Client) {
 	}
 
 	// Create subfolder if it doesn't exist
-	if _, err := os.Stat(fmt.Sprint("./" + options.OutputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(options.OutputDir, subfolder)
+	if _, err := os.Stat(fmt.Sprint("./" + OPTIONS.OutputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(OPTIONS.OutputDir, subfolder)
 		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 			return
 		}
 	}
 
 	filename := strconv.Itoa(post.Score) + "_" + strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(options.OutputDir+subfolder), filename)
+	filename = filepath.Join(fmt.Sprint(OPTIONS.OutputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
 		return
