@@ -180,7 +180,7 @@ func IsGoldMember() bool {
 }
 
 // Returns true if the given string is inside the slice
-func Contains(slice []string, element string) bool {
+func Contains[T comparable](slice []T, element T) bool {
 	for _, a := range slice {
 		if a == element {
 			return true
