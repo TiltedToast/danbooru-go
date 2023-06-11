@@ -18,6 +18,11 @@ import (
 	. "github.com/tiltedtoast/danbooru-go/types"
 )
 
+var (
+	BASE_URL       = "https://danbooru.donmai.us"
+	POSTS_PER_PAGE = 200
+)
+
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
@@ -62,8 +67,9 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options Args, client
 			}
 
 			postsUrl := fmt.Sprintf(
-				"https://danbooru.donmai.us/posts.json?page=%d&tags=%s&limit=200&only=rating,file_url,id,score,file_ext,large_file_url",
-				currentPage, tagString)
+				"%s/posts.json?page=%d&tags=%s&limit=%d&only=rating,file_url,id,score,file_ext,large_file_url",
+				BASE_URL, currentPage, tagString, POSTS_PER_PAGE,
+			)
 
 			// Credentials to get access to extra features for Danbooru Gold users
 			if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
@@ -108,7 +114,7 @@ func GetTotalPages(tags []string) int {
 	for _, tag := range tags {
 		tagString += url.QueryEscape(tag) + "+"
 	}
-	pageUrl := fmt.Sprintf("https://danbooru.donmai.us/posts?tags=%s&limit=200", tagString)
+	pageUrl := fmt.Sprintf("%s/posts?tags=%s&limit=%d", BASE_URL, tagString, POSTS_PER_PAGE)
 
 	// Credentials to get access to extra features for Danbooru Gold users
 	if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
@@ -155,7 +161,7 @@ func IsGoldMember() bool {
 	loginName := os.Getenv("DANBOORU_LOGIN")
 	apiKey := os.Getenv("DANBOORU_API_KEY")
 
-	userRes, err := http.Get(fmt.Sprintf("https://danbooru.donmai.us/profile.json?login=%s&api_key=%s", loginName, apiKey))
+	userRes, err := http.Get(fmt.Sprintf("%s/profile.json?login=%s&api_key=%s", BASE_URL, loginName, apiKey))
 	if err != nil {
 		return false
 	}
