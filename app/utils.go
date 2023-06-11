@@ -26,7 +26,7 @@ var (
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
-func FetchPostsFromPage(tags []string, totalPageAmount int, options Args, client *fasthttp.Client) []Post {
+func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
 	var posts []Post
 
 	wg := sync.WaitGroup{}
@@ -62,7 +62,7 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options Args, client
 			defer wg.Done()
 			rl.Take()
 			tagString := ""
-			for _, tag := range tags {
+			for _, tag := range OPTIONS.Tags {
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
@@ -90,10 +90,10 @@ func FetchPostsFromPage(tags []string, totalPageAmount int, options Args, client
 
 			// User can exclude ratings via CLI flags
 			for _, post := range result {
-				if post.Rating == "s" && !options.Sensitive ||
-					post.Rating == "q" && !options.Questionable ||
-					post.Rating == "e" && !options.Explicit ||
-					post.Rating == "g" && !options.General {
+				if post.Rating == "s" && !OPTIONS.Sensitive ||
+					post.Rating == "q" && !OPTIONS.Questionable ||
+					post.Rating == "e" && !OPTIONS.Explicit ||
+					post.Rating == "g" && !OPTIONS.General {
 					continue
 				}
 				posts = append(posts, post)

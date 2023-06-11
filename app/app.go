@@ -38,14 +38,14 @@ func RunApp() {
 		return
 	}
 
-	options := NewArgs()
 
-	if len(options.Tags) == 0 {
+
+	if len(OPTIONS.Tags) == 0 {
 		fmt.Println("No tags provided")
 		return
 	}
 
-	totalPages := GetTotalPages(options.Tags)
+	totalPages := GetTotalPages(OPTIONS.Tags)
 
 	if totalPages == 0 {
 		fmt.Println("No posts found")
@@ -57,9 +57,9 @@ func RunApp() {
 		Dial:            fasthttp.Dial,
 	}
 
-	posts := FetchPostsFromPage(options.Tags, totalPages, options, &client)
+	posts := FetchPostsFromPage(totalPages, &client)
 
-	newpath := filepath.Join(".", options.OutputDir)
+	newpath := filepath.Join(".", OPTIONS.OutputDir)
 	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 		fmt.Println("Error creating directory, exiting")
 		return
@@ -92,7 +92,7 @@ func RunApp() {
 		guard <- 1
 		go func(post Post) {
 			defer wg.Done()
-			post.Download(options, &client)
+			post.Download(&client)
 			if err := dl_bar.Add(1); err != nil {
 				return
 			}
