@@ -10,8 +10,6 @@ import (
 	"github.com/joho/godotenv"
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
-
-	. "github.com/tiltedtoast/danbooru-go/types"
 )
 
 func RunApp() {
@@ -19,8 +17,7 @@ func RunApp() {
 
 	exe, err := os.Executable()
 	if err != nil {
-		fmt.Println("Error getting executable path")
-		return
+		logger.Fatal("Error getting executable path")
 	}
 
 	exePath := filepath.Dir(exe)
@@ -28,8 +25,7 @@ func RunApp() {
 	if _, err := os.Stat(fmt.Sprintf("%s/.env", exePath)); err == nil {
 		envErr := godotenv.Load(fmt.Sprintf("%s/.env", exePath))
 		if envErr != nil {
-			fmt.Println("Error loading .env file")
-			return
+			logger.Fatal("Error loading .env file")
 		}
 	}
 
@@ -38,18 +34,18 @@ func RunApp() {
 		return
 	}
 
-
+	logger.Trace(fmt.Sprintf("Arguments: %v", OPTIONS))
 
 	if len(OPTIONS.Tags) == 0 {
-		fmt.Println("No tags provided")
-		return
+		logger.Fatal("No tags provided")
 	}
 
 	totalPages := GetTotalPages(OPTIONS.Tags)
 
+	logger.Trace(fmt.Sprintf("Total pages: %d", totalPages))
+
 	if totalPages == 0 {
-		fmt.Println("No posts found")
-		return
+		logger.Fatal("No posts found")
 	}
 
 	client := fasthttp.Client{
@@ -59,10 +55,11 @@ func RunApp() {
 
 	posts := FetchPostsFromPage(totalPages, &client)
 
+	logger.Trace(fmt.Sprintf("Total posts: %d", len(posts)))
+
 	newpath := filepath.Join(".", OPTIONS.OutputDir)
 	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
-		fmt.Println("Error creating directory, exiting")
-		return
+		logger.Fatal("Error creating directory, exiting")
 	}
 
 	dl_bar := pb.NewOptions(len(posts),

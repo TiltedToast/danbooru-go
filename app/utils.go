@@ -14,13 +14,13 @@ import (
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
-
-	. "github.com/tiltedtoast/danbooru-go/types"
 )
 
 var (
 	BASE_URL       = "https://danbooru.donmai.us"
 	POSTS_PER_PAGE = 200
+	LOGIN_NAME     = os.Getenv("DANBOORU_LOGIN")
+	API_KEY        = os.Getenv("DANBOORU_API_KEY")
 )
 
 // Loops over all pages and returns a list of all posts
@@ -71,20 +71,24 @@ func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
 				BASE_URL, currentPage, tagString, POSTS_PER_PAGE,
 			)
 
+			logger.Trace(postsUrl)
+
 			// Credentials to get access to extra features for Danbooru Gold users
-			if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
-				postsUrl += "&login=" + os.Getenv("DANBOORU_LOGIN") + "&api_key=" + os.Getenv("DANBOORU_API_KEY")
+			if LOGIN_NAME != "" && API_KEY != "" {
+				postsUrl += "&login=" + LOGIN_NAME + "&api_key=" + API_KEY
 			}
 
 			statusCode, body, err := client.Get(nil, postsUrl)
 			if err != nil {
+				logger.Warn("Error fetching posts,", err)
 				return
 			}
+			logger.Debug("Status code:", statusCode)
 
 			// Parse JSON Response into list of posts
 			var result []Post
 			if err := json.Unmarshal(body, &result); err != nil {
-				fmt.Println("Error reading response,", statusCode)
+				logger.Error("Error reading response,", statusCode)
 				return
 			}
 
@@ -115,19 +119,22 @@ func GetTotalPages(tags []string) int {
 		tagString += url.QueryEscape(tag) + "+"
 	}
 	pageUrl := fmt.Sprintf("%s/posts?tags=%s&limit=%d", BASE_URL, tagString, POSTS_PER_PAGE)
+	logger.Debug(pageUrl)
 
 	// Credentials to get access to extra features for Danbooru Gold users
-	if os.Getenv("DANBOORU_LOGIN") != "" && os.Getenv("DANBOORU_API_KEY") != "" {
-		pageUrl += "&login=" + os.Getenv("DANBOORU_LOGIN") + "&api_key=" + os.Getenv("DANBOORU_API_KEY")
+	if LOGIN_NAME != "" && API_KEY != "" {
+		pageUrl += "&login=" + LOGIN_NAME + "&api_key=" + API_KEY
 	}
 
 	resp, err := http.Get(pageUrl)
 	if err != nil {
+		logger.Warn("Error fetching page,", err)
 		return 0
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
+		logger.Warn("Error reading page,", err)
 		return 0
 	}
 
@@ -148,6 +155,7 @@ func GetTotalPages(tags []string) int {
 	// Need to work with an int instead of a string
 	totalAmount, err := strconv.Atoi(totalPages)
 	if err != nil {
+		logger.Warn("Error converting total page amount to int,", err)
 		return 0
 	}
 
@@ -155,13 +163,11 @@ func GetTotalPages(tags []string) int {
 }
 
 func IsGoldMember() bool {
-	if os.Getenv("DANBOORU_LOGIN") == "" || os.Getenv("DANBOORU_API_KEY") == "" {
+	if LOGIN_NAME == "" || API_KEY == "" {
 		return false
 	}
-	loginName := os.Getenv("DANBOORU_LOGIN")
-	apiKey := os.Getenv("DANBOORU_API_KEY")
 
-	userRes, err := http.Get(fmt.Sprintf("%s/profile.json?login=%s&api_key=%s", BASE_URL, loginName, apiKey))
+	userRes, err := http.Get(fmt.Sprintf("%s/profile.json?login=%s&api_key=%s", BASE_URL, LOGIN_NAME, API_KEY))
 	if err != nil {
 		return false
 	}
@@ -201,6 +207,8 @@ func PrintHelpMessage() {
 	fmt.Println("  -s, --sensitive     add this flag to filter out sensitive images")
 	fmt.Println("  -q, --questionable  add this flag to filter out questionable images")
 	fmt.Println("  -e, --explicit      add this flag to filter out clearly 18+ images")
+	fmt.Println("  -v  --verbose       add this flag to enable verbose output (prints everything)")
+	fmt.Println("      --debug         add this flag to enable debug information")
 	fmt.Println("")
 	fmt.Println("For more information, see https://github.com/TiltedToast/danbooru-go")
 }
