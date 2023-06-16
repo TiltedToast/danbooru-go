@@ -1,4 +1,4 @@
-package types
+package app
 
 import (
 	"os"

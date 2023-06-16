@@ -1,4 +1,4 @@
-package types
+package app
 
 import (
 	"bufio"
@@ -31,8 +31,11 @@ func (post *Post) Download(client *fasthttp.Client) {
 		post.FileExt = "webm"
 	}
 
+	logger.Debug(fmt.Sprintf("Downloading %s", url))
+
 	_, body, err := client.Get(nil, url)
 	if err != nil {
+		logger.Warn(fmt.Sprintf("Error downloading post: %s", err))
 		return
 	}
 
@@ -55,6 +58,7 @@ func (post *Post) Download(client *fasthttp.Client) {
 	if _, err := os.Stat(fmt.Sprint("./" + OPTIONS.OutputDir + subfolder)); os.IsNotExist(err) {
 		newpath := filepath.Join(OPTIONS.OutputDir, subfolder)
 		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
+			logger.Warn(fmt.Sprintf("Error creating subfolder: %v", err))
 			return
 		}
 	}
@@ -63,11 +67,13 @@ func (post *Post) Download(client *fasthttp.Client) {
 	filename = filepath.Join(fmt.Sprint(OPTIONS.OutputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
+		logger.Trace(fmt.Sprintf("File already exists: %s", filename))
 		return
 	}
 
 	file, err := os.Create(filename)
 	if err != nil {
+		logger.Warn(fmt.Sprintf("Error creating file: %v", err))
 		return
 	}
 
@@ -75,7 +81,7 @@ func (post *Post) Download(client *fasthttp.Client) {
 	w := bufio.NewWriter(file)
 	defer w.Flush()
 	if _, err := w.Write(body); err != nil {
-		fmt.Println("Error writing post:", post.ID)
+		logger.Warn("Error writing post:", post.ID)
 		return
 	}
 }
