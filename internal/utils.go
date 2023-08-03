@@ -1,4 +1,4 @@
-package app
+package internal
 
 import (
 	"encoding/json"
@@ -14,6 +14,7 @@ import (
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
+
 )
 
 var (

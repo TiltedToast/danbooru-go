@@ -1,4 +1,4 @@
-package app
+package internal
 
 import (
 	"bufio"
@@ -20,7 +20,7 @@ type Post struct {
 	LargeFileURL string `json:"large_file_url"`
 }
 
-var OPTIONS = NewArgs()
+var logger = NewLogger()
 
 // Download a post and saves it to a subfolder based on its rating
 func (post *Post) Download(client *fasthttp.Client) {

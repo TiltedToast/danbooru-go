@@ -1,4 +1,4 @@
-package app
+package internal
 
 import (
 	"os"
@@ -13,6 +13,8 @@ type Args struct {
 	Explicit     bool
 	General      bool
 }
+
+var OPTIONS = NewArgs()
 
 // Parses the command line arguments and returns an Args struct
 func NewArgs() Args {
