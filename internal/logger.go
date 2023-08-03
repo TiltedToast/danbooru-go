@@ -1,4 +1,4 @@
-package app
+package internal
 
 import (
 	"os"
@@ -7,14 +7,17 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-var logger = log.Logger{
+func NewLogger() *log.Logger {
+	return &Logger
+}
+
+var Logger = log.Logger{
 	Out: os.Stderr,
 	Formatter: &prefixed.TextFormatter{
 		DisableColors:   false,
 		TimestampFormat: "2006-01-02 15:04:05",
 		FullTimestamp:   true,
 		ForceFormatting: true,
-
 	},
 	Level: determine_level(os.Args[1:]),
 }

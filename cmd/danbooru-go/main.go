@@ -1,4 +1,4 @@
-package app
+package main
 
 import (
 	"fmt"
@@ -10,10 +10,14 @@ import (
 	"github.com/joho/godotenv"
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
+
+	. "github.com/tiltedtoast/danbooru-go/internal"
 )
 
-func RunApp() {
+func main() {
 	args := os.Args[1:]
+
+	logger := NewLogger()
 
 	exe, err := os.Executable()
 	if err != nil {
