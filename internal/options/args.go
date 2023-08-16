@@ -1,4 +1,4 @@
-package internal
+package options
 
 import (
 	"os"
@@ -14,10 +14,10 @@ type Args struct {
 	General      bool
 }
 
-var OPTIONS = NewArgs()
+var args = parseArgs()
 
 // Parses the command line arguments and returns an Args struct
-func NewArgs() Args {
+func parseArgs() Args {
 	args := os.Args[1:]
 
 	options := Args{
@@ -57,4 +57,8 @@ func NewArgs() Args {
 	}
 
 	return options
+}
+
+func GetOptions() *Args {
+	return &args
 }

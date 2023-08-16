@@ -1,4 +1,4 @@
-package internal
+package types
 
 type User struct {
 	LastLoggedInAt                  string `json:"last_logged_in_at"`

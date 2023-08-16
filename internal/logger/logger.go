@@ -1,13 +1,14 @@
-package internal
+package logger
 
 import (
 	"os"
+	"slices"
 
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-func NewLogger() *log.Logger {
+func GetLogger() *log.Logger {
 	return &Logger
 }
 
@@ -23,9 +24,9 @@ var Logger = log.Logger{
 }
 
 func determine_level(args []string) log.Level {
-	if Contains(args, "--debug") {
+	if slices.Contains(args, "--debug") {
 		return log.DebugLevel
-	} else if Contains(args, "--verbose") || Contains(args, "-v") {
+	} else if slices.Contains(args, "--verbose") || slices.Contains(args, "-v") {
 		return log.TraceLevel
 	} else {
 		return log.ErrorLevel
