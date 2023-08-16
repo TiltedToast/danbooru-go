@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -12,12 +13,18 @@ import (
 	"github.com/valyala/fasthttp"
 
 	. "github.com/tiltedtoast/danbooru-go/internal"
+	. "github.com/tiltedtoast/danbooru-go/internal/logger"
+	. "github.com/tiltedtoast/danbooru-go/internal/options"
+	. "github.com/tiltedtoast/danbooru-go/internal/models"
+)
+
+var (
+	opts   = GetOptions()
+	logger = GetLogger()
 )
 
 func main() {
 	args := os.Args[1:]
-
-	logger := NewLogger()
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -33,18 +40,18 @@ func main() {
 		}
 	}
 
-	if Contains(args, "-h") || Contains(args, "--help") || len(args) == 0 {
+	if slices.Contains(args, "-h") || slices.Contains(args, "--help") || len(args) == 0 {
 		PrintHelpMessage()
 		return
 	}
 
-	logger.Trace(fmt.Sprintf("Arguments: %v", OPTIONS))
+	logger.Trace(fmt.Sprintf("Arguments: %v", opts))
 
-	if len(OPTIONS.Tags) == 0 {
+	if len(opts.Tags) == 0 {
 		logger.Fatal("No tags provided")
 	}
 
-	totalPages := GetTotalPages(OPTIONS.Tags)
+	totalPages := GetTotalPages(opts.Tags)
 
 	logger.Trace(fmt.Sprintf("Total pages: %d", totalPages))
 
@@ -61,7 +68,7 @@ func main() {
 
 	logger.Trace(fmt.Sprintf("Total posts: %d", len(posts)))
 
-	newpath := filepath.Join(".", OPTIONS.OutputDir)
+	newpath := filepath.Join(".", opts.OutputDir)
 	if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 		logger.Fatal("Error creating directory, exiting")
 	}

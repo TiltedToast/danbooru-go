@@ -15,6 +15,9 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 
+	. "github.com/tiltedtoast/danbooru-go/internal/logger"
+	. "github.com/tiltedtoast/danbooru-go/internal/options"
+	. "github.com/tiltedtoast/danbooru-go/internal/models"
 )
 
 var (
@@ -22,6 +25,8 @@ var (
 	POSTS_PER_PAGE = 200
 	LOGIN_NAME     = os.Getenv("DANBOORU_LOGIN")
 	API_KEY        = os.Getenv("DANBOORU_API_KEY")
+	logger         = GetLogger()
+	opts           = GetOptions()
 )
 
 // Loops over all pages and returns a list of all posts
@@ -63,7 +68,7 @@ func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
 			defer wg.Done()
 			rl.Take()
 			tagString := ""
-			for _, tag := range OPTIONS.Tags {
+			for _, tag := range opts.Tags {
 				tagString += url.QueryEscape(tag) + "+"
 			}
 
@@ -95,10 +100,10 @@ func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
 
 			// User can exclude ratings via CLI flags
 			for _, post := range result {
-				if post.Rating == "s" && !OPTIONS.Sensitive ||
-					post.Rating == "q" && !OPTIONS.Questionable ||
-					post.Rating == "e" && !OPTIONS.Explicit ||
-					post.Rating == "g" && !OPTIONS.General {
+				if post.Rating == "s" && !opts.Sensitive ||
+					post.Rating == "q" && !opts.Questionable ||
+					post.Rating == "e" && !opts.Explicit ||
+					post.Rating == "g" && !opts.General {
 					continue
 				}
 				posts = append(posts, post)
@@ -184,16 +189,6 @@ func IsGoldMember() bool {
 	}
 
 	return userJson.LevelString != "Member"
-}
-
-// Returns true if the given string is inside the slice
-func Contains[T comparable](slice []T, element T) bool {
-	for _, a := range slice {
-		if a == element {
-			return true
-		}
-	}
-	return false
 }
 
 func PrintHelpMessage() {

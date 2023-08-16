@@ -1,4 +1,4 @@
-package internal
+package types
 
 import (
 	"bufio"
@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	. "github.com/tiltedtoast/danbooru-go/internal/logger"
+	. "github.com/tiltedtoast/danbooru-go/internal/options"
 	"github.com/valyala/fasthttp"
 )
 
@@ -20,7 +22,10 @@ type Post struct {
 	LargeFileURL string `json:"large_file_url"`
 }
 
-var logger = NewLogger()
+var (
+	logger = GetLogger()
+	opts   = GetOptions()
+)
 
 // Download a post and saves it to a subfolder based on its rating
 func (post *Post) Download(client *fasthttp.Client) {
@@ -55,8 +60,8 @@ func (post *Post) Download(client *fasthttp.Client) {
 	}
 
 	// Create subfolder if it doesn't exist
-	if _, err := os.Stat(fmt.Sprint("./" + OPTIONS.OutputDir + subfolder)); os.IsNotExist(err) {
-		newpath := filepath.Join(OPTIONS.OutputDir, subfolder)
+	if _, err := os.Stat(fmt.Sprint("./" + opts.OutputDir + subfolder)); os.IsNotExist(err) {
+		newpath := filepath.Join(opts.OutputDir, subfolder)
 		if err := os.MkdirAll(newpath, os.ModePerm); err != nil {
 			logger.Warn(fmt.Sprintf("Error creating subfolder: %v", err))
 			return
@@ -64,7 +69,7 @@ func (post *Post) Download(client *fasthttp.Client) {
 	}
 
 	filename := strconv.Itoa(post.Score) + "_" + strconv.Itoa(post.ID) + "." + post.FileExt
-	filename = filepath.Join(fmt.Sprint(OPTIONS.OutputDir+subfolder), filename)
+	filename = filepath.Join(fmt.Sprint(opts.OutputDir+subfolder), filename)
 
 	if _, err := os.Stat(filename); err == nil {
 		logger.Trace(fmt.Sprintf("File already exists: %s", filename))
