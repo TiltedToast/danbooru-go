@@ -38,9 +38,9 @@ func (post *Post) Download(client *fasthttp.Client) {
 
 	logger.Debug(fmt.Sprintf("Downloading %s", url))
 
-	_, body, err := client.Get(nil, url)
-	if err != nil {
-		logger.Warn(fmt.Sprintf("Error downloading post: %s", err))
+	code, body, err := client.Get(nil, url)
+	if err != nil || code != fasthttp.StatusOK {
+		logger.Warn(fmt.Sprintf("[%d] Error downloading post: %s", code, err))
 		return
 	}
 
