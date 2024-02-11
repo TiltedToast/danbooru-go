@@ -9,11 +9,11 @@ import (
 )
 
 func GetLogger() *log.Logger {
-	return &Logger
+	return &logger
 }
 
-var Logger = log.Logger{
-	Out: os.Stderr,
+var logger = log.Logger{
+	Out: os.Stdout,
 	Formatter: &prefixed.TextFormatter{
 		DisableColors:   false,
 		TimestampFormat: "2006-01-02 15:04:05",

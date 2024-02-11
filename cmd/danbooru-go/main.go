@@ -92,12 +92,12 @@ func main() {
 	wg.Add(len(posts))
 
 	maxGoroutines := runtime.NumCPU() * 3
-	guard := make(chan int, maxGoroutines)
+	guard := make(chan bool, maxGoroutines)
 
 	// Make sure there's not too many goroutines running at once
 	// This would cause cause extremely high CPU usage / program crashes
 	for _, post := range posts {
-		guard <- 1
+		guard <- true
 		go func(post Post) {
 			defer wg.Done()
 			post.Download(&client)

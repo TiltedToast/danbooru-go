@@ -1,5 +1,5 @@
 build:
-	go build -o bin/danbooru-go.exe cmd/danbooru-go/main.go
+	go build -o bin/danbooru-go cmd/danbooru-go/main.go
 
 install:
 	cd cmd/danbooru-go && go install
