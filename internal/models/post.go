@@ -38,12 +38,6 @@ func (post *Post) Download(client *fasthttp.Client) {
 
 	logger.Debug(fmt.Sprintf("Downloading %s", url))
 
-	code, body, err := client.Get(nil, url)
-	if err != nil || code != fasthttp.StatusOK {
-		logger.Warn(fmt.Sprintf("[%d] Error downloading post: %s", code, err))
-		return
-	}
-
 	var subfolder string
 
 	switch post.Rating {
@@ -79,6 +73,12 @@ func (post *Post) Download(client *fasthttp.Client) {
 	file, err := os.Create(filename)
 	if err != nil {
 		logger.Warn(fmt.Sprintf("Error creating file: %v", err))
+		return
+	}
+
+	code, body, err := client.Get(nil, url)
+	if err != nil || code != fasthttp.StatusOK {
+		logger.Warn(fmt.Sprintf("[%d] Error downloading post: %s", code, err))
 		return
 	}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,8 +17,8 @@ import (
 	"go.uber.org/ratelimit"
 
 	. "github.com/tiltedtoast/danbooru-go/internal/logger"
-	. "github.com/tiltedtoast/danbooru-go/internal/options"
 	. "github.com/tiltedtoast/danbooru-go/internal/models"
+	. "github.com/tiltedtoast/danbooru-go/internal/options"
 )
 
 var (
@@ -189,6 +190,29 @@ func IsGoldMember() bool {
 	}
 
 	return userJson.LevelString != "Member"
+}
+
+// Chunks a slice into n sub-slices of roughly equal size (last one may be smaller)
+//
+// These sub-slices do not contain elements from the original slice,
+// but rather the start and end indexes within the original slice
+func SegmentSlice[T any](slice []T, n int) [][]int {
+	length := len(slice)
+	if n > length {
+		n = length
+	}
+	subSliceSize := int(math.Ceil(float64(length) / float64(n)))
+	partitions := make([][]int, n)
+
+	for startIdx := 0; startIdx < length; startIdx += subSliceSize {
+		endIdx := startIdx + subSliceSize
+		if endIdx > length {
+			endIdx = length
+		}
+		partitions = append(partitions, []int{startIdx, endIdx})
+	}
+
+	return partitions
 }
 
 func PrintHelpMessage() {

@@ -15,7 +15,6 @@ import (
 	. "github.com/tiltedtoast/danbooru-go/internal"
 	. "github.com/tiltedtoast/danbooru-go/internal/logger"
 	. "github.com/tiltedtoast/danbooru-go/internal/options"
-	. "github.com/tiltedtoast/danbooru-go/internal/models"
 )
 
 var (
@@ -92,20 +91,19 @@ func main() {
 	wg.Add(len(posts))
 
 	maxGoroutines := runtime.NumCPU() * 3
-	guard := make(chan bool, maxGoroutines)
 
-	// Make sure there's not too many goroutines running at once
-	// This would cause cause extremely high CPU usage / program crashes
-	for _, post := range posts {
-		guard <- true
-		go func(post Post) {
-			defer wg.Done()
-			post.Download(&client)
-			if err := dl_bar.Add(1); err != nil {
-				return
+	indices := SegmentSlice(posts, maxGoroutines)
+
+	for _, index := range indices {
+		go func(start, end int) {
+			for _, post := range posts[start:end] {
+				defer wg.Done()
+				post.Download(&client)
+				if err := dl_bar.Add(1); err != nil {
+					return
+				}
 			}
-			<-guard
-		}(post)
+		}(index[0], index[1])
 	}
 	wg.Wait()
 }
