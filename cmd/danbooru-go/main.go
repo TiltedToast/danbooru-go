@@ -98,7 +98,7 @@ func main() {
 				defer wg.Done()
 				post.Download(&client)
 				if err := dl_bar.Add(1); err != nil {
-					return
+					continue
 				}
 			}
 		}(index[0], index[1])
