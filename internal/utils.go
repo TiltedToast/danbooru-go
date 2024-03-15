@@ -202,7 +202,7 @@ func SegmentSlice[T any](slice []T, n int) [][]int {
 		n = length
 	}
 	subSliceSize := int(math.Ceil(float64(length) / float64(n)))
-	partitions := make([][]int, n)
+	partitions := make([][]int, 0)
 
 	for startIdx := 0; startIdx < length; startIdx += subSliceSize {
 		endIdx := startIdx + subSliceSize

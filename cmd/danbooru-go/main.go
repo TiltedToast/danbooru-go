@@ -90,9 +90,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(len(posts))
 
-	maxGoroutines := runtime.NumCPU() * 3
-
-	indices := SegmentSlice(posts, maxGoroutines)
+	indices := SegmentSlice(posts, runtime.NumCPU())
 
 	for _, index := range indices {
 		go func(start, end int) {
