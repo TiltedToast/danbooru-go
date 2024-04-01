@@ -16,9 +16,9 @@ import (
 	"github.com/valyala/fasthttp"
 	"go.uber.org/ratelimit"
 
-	. "github.com/tiltedtoast/danbooru-go/internal/logger"
-	. "github.com/tiltedtoast/danbooru-go/internal/models"
-	. "github.com/tiltedtoast/danbooru-go/internal/options"
+	log "github.com/tiltedtoast/danbooru-go/internal/logger"
+	"github.com/tiltedtoast/danbooru-go/internal/types"
+	"github.com/tiltedtoast/danbooru-go/internal/options"
 )
 
 var (
@@ -26,15 +26,15 @@ var (
 	POSTS_PER_PAGE = 200
 	LOGIN_NAME     = os.Getenv("DANBOORU_LOGIN")
 	API_KEY        = os.Getenv("DANBOORU_API_KEY")
-	logger         = GetLogger()
-	opts           = GetOptions()
+	logger         = log.GetLogger()
+	opts           = options.GetOptions()
 )
 
 // Loops over all pages and returns a list of all posts
 //
 // Uses a Progress Bar to show the progress to the user
-func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
-	var posts []Post
+func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []types.Post {
+	var posts []types.Post
 
 	wg := sync.WaitGroup{}
 	wg.Add(totalPageAmount)
@@ -93,7 +93,7 @@ func FetchPostsFromPage(totalPageAmount int, client *fasthttp.Client) []Post {
 			logger.Debug("Status code:", statusCode)
 
 			// Parse JSON Response into list of posts
-			var result []Post
+			var result []types.Post
 			if err := json.Unmarshal(body, &result); err != nil {
 				logger.Error("Error reading response,", statusCode)
 				return
@@ -184,7 +184,7 @@ func IsGoldMember() bool {
 		return false
 	}
 
-	var userJson User
+	var userJson types.User
 	if err := json.Unmarshal(userResData, &userJson); err != nil {
 		return false
 	}

@@ -12,14 +12,14 @@ import (
 	pb "github.com/schollz/progressbar/v3"
 	"github.com/valyala/fasthttp"
 
-	. "github.com/tiltedtoast/danbooru-go/internal"
-	. "github.com/tiltedtoast/danbooru-go/internal/logger"
-	. "github.com/tiltedtoast/danbooru-go/internal/options"
+	"github.com/tiltedtoast/danbooru-go/internal"
+	log "github.com/tiltedtoast/danbooru-go/internal/logger"
+	"github.com/tiltedtoast/danbooru-go/internal/options"
 )
 
 var (
-	opts   = GetOptions()
-	logger = GetLogger()
+	opts   = options.GetOptions()
+	logger = log.GetLogger()
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	if slices.Contains(args, "-h") || slices.Contains(args, "--help") || len(args) == 0 {
-		PrintHelpMessage()
+		internal.PrintHelpMessage()
 		return
 	}
 
@@ -50,7 +50,7 @@ func main() {
 		logger.Fatal("No tags provided")
 	}
 
-	totalPages := GetTotalPages(opts.Tags)
+	totalPages := internal.GetTotalPages(opts.Tags)
 
 	logger.Trace(fmt.Sprintf("Total pages: %d", totalPages))
 
@@ -63,7 +63,7 @@ func main() {
 		Dial:            fasthttp.Dial,
 	}
 
-	posts := FetchPostsFromPage(totalPages, &client)
+	posts := internal.FetchPostsFromPage(totalPages, &client)
 
 	logger.Trace(fmt.Sprintf("Total posts: %d", len(posts)))
 
@@ -90,7 +90,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(len(posts))
 
-	indices := SegmentSlice(posts, runtime.NumCPU())
+	indices := internal.SegmentSlice(posts, runtime.NumCPU())
 
 	for _, index := range indices {
 		go func(start, end int) {

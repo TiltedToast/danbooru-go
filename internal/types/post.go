@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/tiltedtoast/danbooru-go/internal/logger"
-	. "github.com/tiltedtoast/danbooru-go/internal/options"
+	log "github.com/tiltedtoast/danbooru-go/internal/logger"
+	"github.com/tiltedtoast/danbooru-go/internal/options"
 	"github.com/valyala/fasthttp"
 )
 
@@ -23,8 +23,8 @@ type Post struct {
 }
 
 var (
-	logger = GetLogger()
-	opts   = GetOptions()
+	logger = log.GetLogger()
+	opts   = options.GetOptions()
 )
 
 // Download a post and saves it to a subfolder based on its rating
